@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Puriqay is a volunteer-management single-page app for a Peruvian volunteering organization (UI copy is entirely in Spanish, es-PE locale for dates/times). It is a pure client-side React app: there is no backend/API code in this repo — all auth, data, and business logic talk directly to Supabase (Postgres + Auth) from the browser.
 
+## Two repositories
+
+This repo is the **frontend only**, and it is **public**. Everything that defines the database lives in a separate, **private** backend repo (`puriqay-backend`; checked out as the sibling folder `../Backend`): the Supabase migrations (schema, RLS policies, grants, triggers), the Auth email templates, the schema snapshot (`docs/database-schema.md`) and `PENDIENTES.md`, the checklist of out-of-code configuration and security work.
+
+Because this repo is public, do not write security findings, unpatched weaknesses or operational checklists here — they go in the backend repo. A database change is a migration there, not SQL pasted into this repo.
+
 ## Commands
 
 - `npm run dev` — start the Vite dev server.
@@ -26,9 +32,9 @@ Puriqay is a volunteer-management single-page app for a Peruvian volunteering or
 - `role`: `ADMIN` | `COORDINADOR` | `VOLUNTARIO`
 - `area`: free-text department (`"Gerencia General"`, `"Tecnologías de la Información"`, `"Gestión de Proyectos Sociales"`, `"Gestión Humana"`, `"Comunicación y Difusión"`, ...)
 
-`Dashboard.tsx` derives flags (`isSuperAdmin`, `isProyectos`, `isRRHH`, `isMarketing`, `isInternal`, `isVoluntario`) from these to decide which sidebar tabs render, and individual components re-derive similar checks locally (e.g. `MarketingBoard` gates its assign-task form on `role === 'ADMIN'`; `AvailableJornadas` renders an entirely different flow for `VOLUNTARIO` vs. internal staff, who must confirm-or-justify attendance). This gating is UI-only — it hides tabs but doesn't secure data. Real access control has to come from Supabase Row Level Security policies, which live in Supabase, not this repo; don't assume a hidden tab is a security boundary.
+`Dashboard.tsx` derives flags (`isSuperAdmin`, `isProyectos`, `isRRHH`, `isMarketing`, `isInternal`, `isVoluntario`) from these to decide which sidebar tabs render, and individual components re-derive similar checks locally (e.g. `MarketingBoard` gates its assign-task form on `role === 'ADMIN'`; `AvailableJornadas` renders an entirely different flow for `VOLUNTARIO` vs. internal staff, who must confirm-or-justify attendance). This gating is UI-only — it hides tabs but doesn't secure data. Real access control has to come from Supabase Row Level Security policies, which live in Supabase and are versioned as migrations in the backend repo, not here; don't assume a hidden tab is a security boundary.
 
-**Data model** — see [database-schema.md](database-schema.md), a hand-maintained snapshot of the Supabase schema (despite its "generado automáticamente" header, there is no generator script in this repo — update it by hand when you change the schema):
+**Data model** — the full column-by-column snapshot is `docs/database-schema.md` in the backend repo (hand-maintained despite its "generado automáticamente" header; update it there when the schema changes). The tables the frontend touches:
 - `profiles` — one row per Supabase auth user (`id` = auth user id). Holds `role`/`area` plus the volunteer application data displayed in `VolunteerList.tsx` (contact info, emergency contact, study center, medical conditions, shirt size, geolocation). Also holds `qr_token`, the value encoded into a volunteer's QR credential (Dashboard's "Mi Código QR" tab, via `react-qr-code`). Onboarding is two-phase (see below) so most of these advanced columns are nullable and may be empty right after signup.
 - `locations` — partner sites where activities happen (`Locations.tsx`).
 - `jornadas` — a scheduled activity/shift at a `location` with a coordinator (created in `Jornadas.tsx`, listed for RSVP in `AvailableJornadas.tsx`).
@@ -48,6 +54,6 @@ Puriqay is a volunteer-management single-page app for a Peruvian volunteering or
 
 **"Today" means today in Lima.** When a query needs the current date (e.g. `AvailableJornadas` filtering `jornadas.date >= today`), use `todayInLima()` from [src/lib/dates.ts](src/lib/dates.ts). Never derive a date from `new Date().toISOString()`: that is the UTC date, which is already "tomorrow" from 7 p.m. Peru time — the bug that used to hide same-day jornadas every evening. `AttendanceScanner` has its own equivalent inline calculation (it subtracts 5 hours first). For arithmetic on a `YYYY-MM-DD` string, parse it at local noon (`new Date(value + 'T12:00:00')`) as `MarketingBoard` does, so the day cannot shift.
 
-**Email templates:** the Supabase Auth email templates live in [supabase/email-templates/](supabase/email-templates/) — they are **not** compiled with the app; paste them by hand into Supabase under `Authentication → Emails`. They use Go-template vars (`{{ .ConfirmationURL }}`, `{{ .Data.first_name }}` from the `signUp` metadata) and inline-styled tables because email clients do not support flexbox or external CSS.
+**Email templates:** the Supabase Auth email templates live in the backend repo (`supabase/email-templates/`) — they are **not** compiled with the app; they are pasted by hand into Supabase under `Authentication → Emails`. What matters on this side is the contract: they read Go-template vars such as `{{ .Data.first_name }}`, which come from the `options.data` metadata that `Register.tsx` sends in `signUp`, so renaming those metadata keys breaks the emails (and the `handle_new_user` trigger that copies them into `profiles`).
 
 **Deployment:** `public/_redirects` (`/* /index.html 200`) rewrites all paths to `index.html`, i.e. this is hosted as a static SPA on a Netlify/Cloudflare-Pages-style host. Keep client-side routing working under that rewrite-everything-to-index assumption.
