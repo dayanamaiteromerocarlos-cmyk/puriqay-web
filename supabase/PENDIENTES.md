@@ -448,9 +448,9 @@ Menores, sin urgencia:
 
 # PENDIENTE (12-oct) — permisos de `inscripciones` y trigger guardián
 
-**Estado:** migraciones escritas y probadas en local. **Nada aplicado en producción.**
-Rama `fix/rls-inscripciones` en `E:\Puriqay\SupabaseItalo`, a la espera de la
-revisión de Pedro.
+**Estado:** 3 migraciones escritas y probadas en local. **Nada aplicado en producción.**
+Están en el PR #2 del repo del backend (rama `fix/rls-inscripciones`), a la espera
+de la revisión de Pedro. Ese PR va encima del PR #1, que tampoco se ha fusionado.
 
 ## Qué se encontró
 
@@ -473,31 +473,36 @@ era la segunda capa de protección.
 |---|---|
 | `20261013014000_inscripciones_permisos_minimos.sql` | Crear y modificar solo la inscripción propia y solo si la jornada es de hoy o futura; nadie borra; estado válido obligatorio; "Cambió" y fechas los calcula la base |
 | `20261013014500_profiles_guard_security_invoker.sql` | El trigger guardián pasa a `SECURITY INVOKER` y empieza a bloquear de verdad |
+| `20261013023500_inscripciones_motivo_obligatorio.sql` | "No asistiré" exige un motivo también en la base (antes solo lo exigía el formulario) |
 
-No hay que tocar el frontend. Decisiones tomadas: la regla de tiempo **sí**; que
-los coordinadores sigan leyendo las justificaciones **sí**. Sin decidir: exigir en
-la base el motivo cuando alguien pone "No asistiré".
+No hay que tocar el frontend. Decisiones tomadas: la regla de tiempo **sí**; exigir
+el motivo en la base **sí**; que los coordinadores sigan leyendo las justificaciones
+**sí** (no se cambió).
 
 ## Pasos para aplicar (cuando Pedro apruebe)
 
 - [ ] **1. Revisar que no haya datos que choquen.** SQL Editor:
 
   ```sql
-  select status, count(*) from public.inscripciones group by status;
+  select
+    count(*) filter (where status is null or status not in ('ASISTIRÁ', 'NO ASISTIRÁ')) as estados_invalidos,
+    count(*) filter (where status = 'NO ASISTIRÁ' and coalesce(btrim(justification_type), '') = '') as no_asistire_sin_motivo,
+    count(*) as total
+  from public.inscripciones;
   ```
 
-  Solo deben salir `ASISTIRÁ` y `NO ASISTIRÁ` (o nada, si la tabla está vacía).
-  Si aparece cualquier otro valor o una fila vacía, **no seguir** y avisar.
+  Los **dos primeros números deben ser 0** (el tercero puede ser cualquiera).
+  Si alguno no es 0, **no seguir** y avisar: hay que corregir esas filas primero.
 
-- [ ] **2. Aplicar la primera.** Abrir en VS Code el archivo
-  `E:\Puriqay\SupabaseItalo\supabase\migrations\20261013014000_inscripciones_permisos_minimos.sql`,
-  copiar todo (`Ctrl+A`, `Ctrl+C`), pegarlo en el SQL Editor y dar **Run**.
-  Debe decir `Success. No rows returned`.
+- [ ] **2. Aplicar las 3 migraciones, en orden.** Para cada archivo de la carpeta
+  `supabase/migrations` del backend: abrirlo en VS Code, copiar todo (`Ctrl+A`,
+  `Ctrl+C`), pegarlo en el SQL Editor y dar **Run**. Cada una debe responder
+  `Success. No rows returned`.
+  1. `20261013014000_inscripciones_permisos_minimos.sql`
+  2. `20261013014500_profiles_guard_security_invoker.sql`
+  3. `20261013023500_inscripciones_motivo_obligatorio.sql`
 
-- [ ] **3. Aplicar la segunda**, igual, con el archivo
-  `20261013014500_profiles_guard_security_invoker.sql`.
-
-- [ ] **4. Verificar.** SQL Editor:
+- [ ] **3. Verificar.** SQL Editor:
 
   ```sql
   select 'politica' as tipo, policyname as nombre, cmd as detalle
@@ -511,10 +516,13 @@ la base el motivo cuando alguien pone "No asistiré".
   select 'permiso', 'authenticated', string_agg(privilege_type, ', ' order by privilege_type)
   from information_schema.role_table_grants
   where table_schema = 'public' and table_name = 'inscripciones' and grantee = 'authenticated'
+  union all
+  select 'regla', conname, 'activa'
+  from pg_constraint where conrelid = 'public.inscripciones'::regclass and contype = 'c'
   order by 1, 2;
   ```
 
-  Deben salir exactamente estas 7 filas:
+  Deben salir exactamente estas 9 filas:
 
   | tipo | nombre | detalle |
   |---|---|---|
@@ -525,14 +533,21 @@ la base el motivo cuando alguien pone "No asistiré".
   | politica | inscripciones_insert_propia | INSERT |
   | politica | inscripciones_select | SELECT |
   | politica | inscripciones_update_propia | UPDATE |
+  | regla | inscripciones_justificacion_check | activa |
+  | regla | inscripciones_status_check | activa |
 
-- [ ] **5. Probar en la app publicada** (lo mismo que el 28-sep):
+- [ ] **4. Probar en la app publicada** (lo mismo que el 28-sep):
   - Como VOLUNTARIO: inscribirse a una jornada → queda "✅ Ya estás inscrito"
   - Como COORDINADOR o ADMIN: "Sí, asistiré" y luego "No asistiré" con motivo →
     debe guardarse y aparecer la marca "⚠️ Cambió"
   - En "Control de Asistencia": el contador de "Esperados" sigue mostrando número
 
+- [ ] **5. Avisar para actualizar la documentación** (`database-schema.md` y
+  `CLAUDE.md`), que hoy describen el estado anterior.
+
 ## Si algo se rompe, revertir `inscripciones`
+
+Probado: devuelve la tabla al comportamiento de antes.
 
 ```sql
 drop trigger if exists trg_inscripciones_campos_servidor on public.inscripciones;
@@ -542,18 +557,22 @@ create policy inscripciones_propias on public.inscripciones
   to authenticated
   using (auth.uid() = volunteer_id) with check (auth.uid() = volunteer_id);
 grant delete on public.inscripciones to authenticated;
+alter table public.inscripciones drop constraint if exists inscripciones_justificacion_check;
 alter table public.inscripciones drop constraint if exists inscripciones_status_check;
 alter table public.inscripciones alter column status drop not null;
 ```
 
-## Otros hallazgos del mismo análisis (sin resolver)
+## Otros hallazgos del mismo análisis
 
-- **`asistencias` y `marketing_tasks` sí son `ALL` sobre todas las filas** para
-  cualquier COORDINADOR o ADMIN. Probado: una coordinadora se registra asistencia a
-  sí misma sin QR, borra la asistencia de otra persona y le cambia la hora de
-  ingreso; una coordinadora de Proyectos borra una tarea de Marketing.
-- **"Próximas Jornadas" calcula "hoy" en hora UTC** (`AvailableJornadas.tsx`), así
-  que desde las 7 p. m. de Perú las jornadas del mismo día dejan de listarse.
+- **Sin resolver: `asistencias` y `marketing_tasks` sí son `ALL` sobre todas las
+  filas** para cualquier COORDINADOR o ADMIN. Probado: una coordinadora se registra
+  asistencia a sí misma sin QR, borra la asistencia de otra persona y le cambia la
+  hora de ingreso; una coordinadora de Proyectos borra una tarea de Marketing.
+- **Arreglado en el código (12-oct), falta desplegar:** "Próximas Jornadas"
+  calculaba "hoy" en hora UTC, así que desde las 7 p. m. de Perú las jornadas del
+  mismo día dejaban de listarse. Ahora usa `todayInLima()` de `src/lib/dates.ts`.
+  Para comprobarlo en la app publicada: entrar después de las 7 p. m. y confirmar
+  que una jornada con fecha de hoy sigue apareciendo.
 
 ## Lección: un trigger se verifica provocándolo
 

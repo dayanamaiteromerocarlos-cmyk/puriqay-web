@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { todayInLima } from '../lib/dates';
 import { Search, ChevronDown, ChevronUp, AlertCircle, MapPin, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -39,7 +40,7 @@ export default function AvailableJornadas() {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile) setUserRole(profile.role);
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayInLima();
     const { data: jorData } = await supabase
       .from('jornadas')
       .select('*')
