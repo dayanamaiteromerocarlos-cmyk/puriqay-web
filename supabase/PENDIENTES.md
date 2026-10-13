@@ -277,6 +277,9 @@ Aplicado con `supabase/sql/endurecer_permisos.sql`:
   (importante: **TRUNCATE no pasa por RLS**, permitía vaciar una tabla entera)
 - Trigger `trg_profiles_guard`: bloquea cambios a `role`, `area`, `is_active`,
   `qr_token`, `email` e `id` salvo que la sesión sea ADMIN o backend
+  > **Corrección (12-oct):** esto resultó falso. El trigger existe pero **no bloquea
+  > nada**; lo que frena esos cambios son los permisos por columna. Ver la sección
+  > "PENDIENTE (12-oct)" al final.
 
 Estado verificado:
 
@@ -411,7 +414,7 @@ Todas las casillas de este archivo están marcadas. Resumen de lo que quedó cer
 | Bloque | Estado |
 |---|---|
 | Políticas RLS en las 6 tablas | ✅ aplicadas y **probadas en la app** |
-| Escalada de privilegios (`role`, `area`, `qr_token`…) | ✅ cerrada con grants por columna + trigger guardián |
+| Escalada de privilegios (`role`, `area`, `qr_token`…) | ✅ cerrada con grants por columna. El trigger guardián **no actuaba** (ver corrección del 12-oct al final) |
 | Lectura de `locations` (datos de aliados) | ✅ cerrada, verificada consultando la API como VOLUNTARIO |
 | Permisos de `anon` y `TRUNCATE` | ✅ revocados |
 | Correo (Resend + dominio + plantilla + verificación) | ✅ funcionando de punta a punta |
@@ -440,3 +443,121 @@ Menores, sin urgencia:
 - Leaked Password Protection: requiere plan Pro
 - `phone` y `birth_date` están vacíos en los internos sembrados y nada los pide,
   porque el modal de perfil progresivo no incluye esos dos campos
+
+---
+
+# PENDIENTE (12-oct) — permisos de `inscripciones` y trigger guardián
+
+**Estado:** migraciones escritas y probadas en local. **Nada aplicado en producción.**
+Rama `fix/rls-inscripciones` en `E:\Puriqay\SupabaseItalo`, a la espera de la
+revisión de Pedro.
+
+## Qué se encontró
+
+**1. `inscripciones` permitía de más.** La política era `ALL`, pero solo sobre las
+filas propias: nadie podía leer ni tocar inscripciones ajenas (probado). Lo que
+sobraba es lo que cada persona podía hacer con **su propia** inscripción hablando
+directo con la API: borrarla, apagar la marca "Cambió", poner fechas falsas,
+cambiar su respuesta de una jornada ya pasada, escribir un estado inventado o
+moverla a otra jornada.
+
+**2. El trigger `trg_profiles_guard` no bloqueaba nada.** Estaba declarado
+`SECURITY DEFINER` y decidía con `current_user`, que dentro de una función así
+vale `postgres` y no el rol del usuario. Producción **no** estuvo expuesta: los
+permisos por columna de `profiles` rechazan esos cambios antes. Lo que no existía
+era la segunda capa de protección.
+
+## Qué hacen las migraciones
+
+| Archivo | Qué hace |
+|---|---|
+| `20261013014000_inscripciones_permisos_minimos.sql` | Crear y modificar solo la inscripción propia y solo si la jornada es de hoy o futura; nadie borra; estado válido obligatorio; "Cambió" y fechas los calcula la base |
+| `20261013014500_profiles_guard_security_invoker.sql` | El trigger guardián pasa a `SECURITY INVOKER` y empieza a bloquear de verdad |
+
+No hay que tocar el frontend. Decisiones tomadas: la regla de tiempo **sí**; que
+los coordinadores sigan leyendo las justificaciones **sí**. Sin decidir: exigir en
+la base el motivo cuando alguien pone "No asistiré".
+
+## Pasos para aplicar (cuando Pedro apruebe)
+
+- [ ] **1. Revisar que no haya datos que choquen.** SQL Editor:
+
+  ```sql
+  select status, count(*) from public.inscripciones group by status;
+  ```
+
+  Solo deben salir `ASISTIRÁ` y `NO ASISTIRÁ` (o nada, si la tabla está vacía).
+  Si aparece cualquier otro valor o una fila vacía, **no seguir** y avisar.
+
+- [ ] **2. Aplicar la primera.** Abrir en VS Code el archivo
+  `E:\Puriqay\SupabaseItalo\supabase\migrations\20261013014000_inscripciones_permisos_minimos.sql`,
+  copiar todo (`Ctrl+A`, `Ctrl+C`), pegarlo en el SQL Editor y dar **Run**.
+  Debe decir `Success. No rows returned`.
+
+- [ ] **3. Aplicar la segunda**, igual, con el archivo
+  `20261013014500_profiles_guard_security_invoker.sql`.
+
+- [ ] **4. Verificar.** SQL Editor:
+
+  ```sql
+  select 'politica' as tipo, policyname as nombre, cmd as detalle
+  from pg_policies where schemaname = 'public' and tablename = 'inscripciones'
+  union all
+  select 'funcion', proname, case when prosecdef then 'SECURITY DEFINER' else 'SECURITY INVOKER' end
+  from pg_proc
+  where pronamespace = 'public'::regnamespace
+    and proname in ('profiles_guard_sensible', 'inscripciones_campos_servidor', 'jornada_vigente')
+  union all
+  select 'permiso', 'authenticated', string_agg(privilege_type, ', ' order by privilege_type)
+  from information_schema.role_table_grants
+  where table_schema = 'public' and table_name = 'inscripciones' and grantee = 'authenticated'
+  order by 1, 2;
+  ```
+
+  Deben salir exactamente estas 7 filas:
+
+  | tipo | nombre | detalle |
+  |---|---|---|
+  | funcion | inscripciones_campos_servidor | SECURITY INVOKER |
+  | funcion | jornada_vigente | SECURITY INVOKER |
+  | funcion | profiles_guard_sensible | SECURITY INVOKER |
+  | permiso | authenticated | INSERT, SELECT, UPDATE |
+  | politica | inscripciones_insert_propia | INSERT |
+  | politica | inscripciones_select | SELECT |
+  | politica | inscripciones_update_propia | UPDATE |
+
+- [ ] **5. Probar en la app publicada** (lo mismo que el 28-sep):
+  - Como VOLUNTARIO: inscribirse a una jornada → queda "✅ Ya estás inscrito"
+  - Como COORDINADOR o ADMIN: "Sí, asistiré" y luego "No asistiré" con motivo →
+    debe guardarse y aparecer la marca "⚠️ Cambió"
+  - En "Control de Asistencia": el contador de "Esperados" sigue mostrando número
+
+## Si algo se rompe, revertir `inscripciones`
+
+```sql
+drop trigger if exists trg_inscripciones_campos_servidor on public.inscripciones;
+drop policy if exists inscripciones_insert_propia on public.inscripciones;
+drop policy if exists inscripciones_update_propia on public.inscripciones;
+create policy inscripciones_propias on public.inscripciones
+  to authenticated
+  using (auth.uid() = volunteer_id) with check (auth.uid() = volunteer_id);
+grant delete on public.inscripciones to authenticated;
+alter table public.inscripciones drop constraint if exists inscripciones_status_check;
+alter table public.inscripciones alter column status drop not null;
+```
+
+## Otros hallazgos del mismo análisis (sin resolver)
+
+- **`asistencias` y `marketing_tasks` sí son `ALL` sobre todas las filas** para
+  cualquier COORDINADOR o ADMIN. Probado: una coordinadora se registra asistencia a
+  sí misma sin QR, borra la asistencia de otra persona y le cambia la hora de
+  ingreso; una coordinadora de Proyectos borra una tarea de Marketing.
+- **"Próximas Jornadas" calcula "hoy" en hora UTC** (`AvailableJornadas.tsx`), así
+  que desde las 7 p. m. de Perú las jornadas del mismo día dejan de listarse.
+
+## Lección: un trigger se verifica provocándolo
+
+El 28-sep el trigger guardián se dio por bueno porque existía, estaba activo y su
+texto mencionaba `area`. Nunca se disparó en una prueba. Para comprobar una red de
+seguridad hay que simular el error contra el que protege (aquí, un `GRANT` de más)
+y ver que lo frena.
