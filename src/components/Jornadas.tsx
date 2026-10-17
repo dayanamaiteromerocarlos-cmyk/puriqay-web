@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import { Calendar, Clock, MapPin, UserSquare2, Activity, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { getActionLineColor } from '../lib/catalogs';
 import LoadError from './LoadError';
+import toast from 'react-hot-toast';
+import { todayInLima } from '../lib/dates';
 
 export default function Jornadas() {
   const [jornadas, setJornadas] = useState<any[]>([]);
@@ -68,6 +70,23 @@ export default function Jornadas() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validaciones de sentido común. Son del lado del cliente (se pueden saltar): la
+    // regla definitiva, si se quiere, es un CHECK en la base (ver PENDIENTES del backend).
+    const horasValidas = parseFloat(formData.valid_hours);
+    if (formData.date < todayInLima()) {
+      toast.error('La fecha de la jornada no puede ser anterior a hoy.');
+      return;
+    }
+    if (formData.end_time <= formData.start_time) {
+      toast.error('La hora de fin debe ser posterior a la hora de inicio.');
+      return;
+    }
+    if (!Number.isFinite(horasValidas) || horasValidas <= 0) {
+      toast.error('Las horas válidas deben ser mayores que 0.');
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase
@@ -79,15 +98,15 @@ export default function Jornadas() {
         date: formData.date,
         start_time: formData.start_time,
         end_time: formData.end_time,
-        valid_hours: parseFloat(formData.valid_hours),
+        valid_hours: horasValidas,
         type: formData.type,
         description: formData.description
       }]);
 
     if (error) {
-      alert('Error al crear la jornada: ' + error.message);
+      toast.error('Error al crear la jornada: ' + error.message);
     } else {
-      alert('¡Jornada programada con éxito!');
+      toast.success('¡Jornada programada con éxito!');
       setFormData({
         ...formData, name: '', location_id: '', coordinator_id: '', date: '', start_time: '', end_time: '', valid_hours: '', description: ''
       });
@@ -151,7 +170,7 @@ export default function Jornadas() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <label className={labelClass}>Fecha <span className="text-red-500">*</span></label>
-              <input type="date" name="date" required value={formData.date} onChange={handleChange} className={inputClass} />
+              <input type="date" name="date" required min={todayInLima()} value={formData.date} onChange={handleChange} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Hora Inicio <span className="text-red-500">*</span></label>
@@ -163,7 +182,7 @@ export default function Jornadas() {
             </div>
             <div>
               <label className={labelClass}>Horas Válidas <span className="text-red-500">*</span></label>
-              <input type="number" step="0.5" name="valid_hours" required value={formData.valid_hours} onChange={handleChange} className={inputClass} placeholder="Ej: 3" />
+              <input type="number" step="0.5" min="0.5" name="valid_hours" required value={formData.valid_hours} onChange={handleChange} className={inputClass} placeholder="Ej: 3" />
             </div>
           </div>
 
