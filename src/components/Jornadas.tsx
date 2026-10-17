@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Calendar, Clock, MapPin, UserSquare2, Activity, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { getActionLineColor } from '../lib/catalogs';
+import LoadError from './LoadError';
 
 export default function Jornadas() {
   const [jornadas, setJornadas] = useState<any[]>([]);
@@ -9,6 +10,7 @@ export default function Jornadas() {
   const [coordinators, setCoordinators] = useState<any[]>([]); 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // La descripción de cada jornada se muestra solo al hacer clic, para que la lista
   // se mantenga compacta.
@@ -32,24 +34,31 @@ export default function Jornadas() {
   }, []);
 
   const fetchData = async () => {
-    const { data: locData } = await supabase
+    setLoadError(null);
+
+    const { data: locData, error: locError } = await supabase
       .from('locations')
       .select('id, name, district, action_line')
       .eq('status', 'ACTIVO');
     if (locData) setLocations(locData);
 
-    const { data: coordData } = await supabase
+    const { data: coordData, error: coordError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name')
       .in('role', ['ADMIN', 'COORDINADOR']);
     if (coordData) setCoordinators(coordData);
 
-    const { data: jorData } = await supabase
+    const { data: jorData, error: jorError } = await supabase
       .from('jornadas')
       .select('*, locations(name, district, action_line), profiles(first_name, last_name)')
       .order('date', { ascending: false });
-      
+
     if (jorData) setJornadas(jorData);
+
+    // Si alguna consulta falló, se avisa: los desplegables vacíos y la lista vacía
+    // parecerían "no hay datos" cuando en realidad fue un error de red o de permisos.
+    const failure = locError || coordError || jorError;
+    if (failure) setLoadError(failure.message);
     setFetching(false);
   };
 
@@ -97,6 +106,7 @@ export default function Jornadas() {
 
   return (
     <div className="space-y-8">
+      {loadError && <LoadError message={loadError} onRetry={fetchData} />}
       
       {/* FORMULARIO DE CREACIÓN */}
       <div className="bg-white p-6 md:p-8 rounded-3xl border border-pq-cream-dark shadow-sm">

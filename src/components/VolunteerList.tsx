@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import LoadError from './LoadError';
 import { Search, ChevronDown, ChevronUp, Phone, HeartPulse, GraduationCap, MapPin, UserSquare2, Shirt, AlertCircle } from 'lucide-react';
 
 // Actualizamos el perfil con TODOS los datos que trae el registro
@@ -25,7 +26,8 @@ type Profile = {
 export default function VolunteerList() {
   const [volunteers, setVolunteers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // Controles de búsqueda y filtros
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('TODOS');
@@ -39,6 +41,7 @@ export default function VolunteerList() {
 
   const fetchVolunteers = async () => {
     setLoading(true);
+    setLoadError(null);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -46,6 +49,7 @@ export default function VolunteerList() {
 
     if (error) {
       console.error('Error al cargar voluntarios:', error);
+      setLoadError(error.message);
     } else {
       setVolunteers(data || []);
     }
@@ -126,6 +130,8 @@ export default function VolunteerList() {
         {/* LISTADO DE VOLUNTARIOS */}
         {loading ? (
           <div className="flex justify-center p-10"><p className="text-pq-teal-dark font-bold animate-pulse">Cargando directorio...</p></div>
+        ) : loadError ? (
+          <LoadError message={loadError} onRetry={fetchVolunteers} />
         ) : (
           <div className="space-y-3">
             <div className="hidden md:grid grid-cols-12 gap-4 px-5 pb-2 text-[10px] font-black text-pq-teal-dark uppercase tracking-widest border-b-2 border-pq-cream-dark">

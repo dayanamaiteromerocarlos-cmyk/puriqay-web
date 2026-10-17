@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import VolunteerList from './VolunteerList';
 import Locations from './Locations';
@@ -39,6 +40,20 @@ export default function Dashboard() {
     }
     checkUserRole();
   }, []);
+
+  // Si la sesión se cierra por fuera de "Cerrar Sesión" (token vencido o revocado,
+  // contraseña cambiada en otro dispositivo), las consultas empezarían a fallar o a
+  // devolver vacío sin explicación. Mejor avisar y mandar al login.
+  const loggingOut = useRef(false);
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        if (!loggingOut.current) toast.error('Tu sesión terminó. Inicia sesión de nuevo.');
+        navigate('/', { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const checkUserRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -84,6 +99,7 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
+    loggingOut.current = true;
     await supabase.auth.signOut();
     navigate('/');
   };

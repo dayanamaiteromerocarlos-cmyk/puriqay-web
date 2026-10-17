@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import LoadError from './LoadError';
 
 export default function AttendanceScanner() {
   const [jornadas, setJornadas] = useState<any[]>([]);
@@ -11,6 +12,8 @@ export default function AttendanceScanner() {
 
   const [asistencias, setAsistencias] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [jornadasError, setJornadasError] = useState<string | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [stats, setStats] = useState({ inscritos: 0, total: 0, internos: 0, externos: 0 });
 
   useEffect(() => {
@@ -31,18 +34,21 @@ export default function AttendanceScanner() {
     todayObj.setHours(todayObj.getHours() - 5);
     const today = todayObj.toISOString().split('T')[0];
     
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('jornadas')
       .select('id, name, date')
       .gte('date', today)
       .order('date', { ascending: true });
-    
+
     if (data) setJornadas(data);
+    // Sin esto, un fallo se veía como "No hay jornadas programadas".
+    setJornadasError(error ? error.message : null);
   };
 
   const fetchAsistencias = async (jornadaId: string) => {
     setLoadingStats(true);
-    const { data: insData } = await supabase.from('inscripciones').select('id').eq('jornada_id', jornadaId).eq('status', 'ASISTIRÁ');
+    setStatsError(null);
+    const { data: insData, error: insError } = await supabase.from('inscripciones').select('id').eq('jornada_id', jornadaId).eq('status', 'ASISTIRÁ');
     const totalInscritos = insData ? insData.length : 0;
 
     const { data, error } = await supabase
@@ -57,6 +63,8 @@ export default function AttendanceScanner() {
       data.forEach(asist => { if (asist.profiles?.role === 'VOLUNTARIO') externos++; else internos++; });
       setStats({ inscritos: totalInscritos, total: data.length, internos, externos });
     }
+    const failure = error || insError;
+    if (failure) setStatsError(failure.message);
     setLoadingStats(false);
   };
 
@@ -89,6 +97,9 @@ export default function AttendanceScanner() {
 
   return (
     <div className="space-y-6">
+      {jornadasError && <LoadError message={jornadasError} onRetry={fetchJornadas} />}
+      {statsError && <LoadError message={statsError} onRetry={() => fetchAsistencias(selectedJornada)} />}
+
       <div className="bg-white p-6 md:p-8 rounded-3xl border border-pq-cream-dark shadow-sm">
         <label className="block text-sm font-bold text-pq-teal-dark mb-3">Selecciona la Jornada Activa para iniciar el control:</label>
         <select 

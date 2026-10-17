@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { todayInLima } from '../lib/dates';
 import { Search, ChevronDown, ChevronUp, AlertCircle, MapPin, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import LoadError from './LoadError';
 
 export default function AvailableJornadas() {
   const [jornadas, setJornadas] = useState<any[]>([]);
@@ -10,6 +11,7 @@ export default function AvailableJornadas() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedJornadas, setExpandedJornadas] = useState<string[]>([]);
@@ -33,27 +35,39 @@ export default function AvailableJornadas() {
 
   const loadData = async () => {
     setLoading(true);
+    setLoadError(null);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      // Sin sesión no hay nada que cargar; Dashboard se encarga de mandar al login.
+      setLoading(false);
+      return;
+    }
     setUserId(user.id);
 
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    // Primer error de cualquier consulta: si alguna falla, se avisa en vez de mostrar
+    // una lista vacía que parece "no hay jornadas".
+    let failure: string | null = null;
+
+    const { data: profile, error: profileError } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile) setUserRole(profile.role);
+    if (profileError) failure = profileError.message;
 
     const today = todayInLima();
-    const { data: jorData } = await supabase
+    const { data: jorData, error: jorError } = await supabase
       .from('jornadas')
       .select('*')
       .gte('date', today)
       .order('date', { ascending: true });
+    if (jorError) failure = failure ?? jorError.message;
 
     // El lugar se lee de la vista locations_publicas, que expone solo nombre,
     // distrito y punto de encuentro. La tabla locations completa (con telefonos
     // y direccion de los aliados) queda reservada al equipo interno, asi que no
     // se puede usar el join embebido de PostgREST: unimos aqui por location_id.
-    const { data: locData } = await supabase
+    const { data: locData, error: locError } = await supabase
       .from('locations_publicas')
       .select('id, name, district, meeting_point');
+    if (locError) failure = failure ?? locError.message;
 
     if (jorData) {
       const lugares: Record<string, any> = {};
@@ -61,16 +75,18 @@ export default function AvailableJornadas() {
       setJornadas(jorData.map(jor => ({ ...jor, locations: lugares[jor.location_id] || null })));
     }
 
-    const { data: insData } = await supabase
+    const { data: insData, error: insError } = await supabase
       .from('inscripciones')
       .select('*')
       .eq('volunteer_id', user.id);
+    if (insError) failure = failure ?? insError.message;
 
     if (insData) {
       const inscMap: any = {};
       insData.forEach(ins => { inscMap[ins.jornada_id] = ins; });
       setInscripciones(inscMap);
     }
+    setLoadError(failure);
     setLoading(false);
   };
 
@@ -149,6 +165,8 @@ export default function AvailableJornadas() {
   }, [jornadas, searchQuery]);
 
   if (loading) return <div className="flex justify-center p-10"><p className="text-pq-teal-dark font-medium animate-pulse">Cargando jornadas disponibles...</p></div>;
+
+  if (loadError) return <LoadError message={loadError} onRetry={loadData} />;
 
   return (
     <div className="space-y-6 relative">
