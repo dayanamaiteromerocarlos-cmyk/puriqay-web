@@ -51,8 +51,18 @@ export default function ResetPassword() {
       return;
     }
 
-    toast.success('Contraseña actualizada. Inicia sesión con la nueva.');
-    await supabase.auth.signOut();
+    // Solo aquí, con el cambio ya hecho, se cierran TODAS las sesiones (también las de otros
+    // dispositivos): si la contraseña se cambió por una sospecha de acceso ajeno, quien la
+    // tenía no puede seguir dentro. Pedir el enlace en "Olvidé mi contraseña" no cierra nada.
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'global' });
+
+    if (signOutError) {
+      // La contraseña ya cambió; si el cierre global falla, se dice claramente.
+      await supabase.auth.signOut({ scope: 'local' });
+      toast.error('Contraseña actualizada, pero no pudimos cerrar tus otras sesiones. Inicia sesión con la nueva y vuelve a cambiarla si sospechas de un acceso ajeno.', { duration: 9000 });
+    } else {
+      toast.success('Contraseña actualizada. Se cerraron todas tus sesiones activas; inicia sesión con la nueva contraseña.', { duration: 7000 });
+    }
     navigate('/', { replace: true });
   };
 
