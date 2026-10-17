@@ -66,6 +66,12 @@ export default function Login() {
             />
           </div>
 
+          <div className="text-right -mt-3">
+            <Link to="/forgot-password" className="text-sm text-pq-teal font-bold hover:text-pq-teal-dark transition-colors hover:underline">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+
           {errorMsg && (
             <div className="bg-red-50 text-red-600 text-sm text-center font-bold p-3 rounded-xl border border-red-100">
               {errorMsg}

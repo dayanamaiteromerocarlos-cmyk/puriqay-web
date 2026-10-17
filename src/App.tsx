@@ -3,6 +3,8 @@ import { Toaster } from 'react-hot-toast'; // <-- 1. Importamos el Toaster
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Register from './components/Register';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 
 function App() {
   return (
@@ -41,6 +43,8 @@ function App() {
           {/* Rutas Públicas */}
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* Ruta Interna */}
           <Route path="/dashboard" element={<Dashboard />} />
