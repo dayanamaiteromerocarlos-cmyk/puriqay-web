@@ -3,12 +3,30 @@ import { supabase } from '../lib/supabase';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import LoadError from './LoadError';
 
+const describeCameraError = (err: unknown): string => {
+  const name = (err as { name?: string } | null)?.name;
+  if (name === 'NotAllowedError' || name === 'SecurityError') {
+    return 'No tenemos permiso para usar la cámara. Actívalo desde el candado de la barra de direcciones y pulsa Reintentar.';
+  }
+  if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+    return 'No se encontró una cámara en este dispositivo.';
+  }
+  if (name === 'NotReadableError' || name === 'AbortError') {
+    return 'La cámara está siendo usada por otra aplicación. Ciérrala y pulsa Reintentar.';
+  }
+  return 'No se pudo iniciar la cámara. Revisa los permisos del navegador y pulsa Reintentar.';
+};
+
 export default function AttendanceScanner() {
   const [jornadas, setJornadas] = useState<any[]>([]);
   const [selectedJornada, setSelectedJornada] = useState('');
   
   const [message, setMessage] = useState({ text: '', type: '' });
   const [isScanning, setIsScanning] = useState(true);
+  // Error de la cámara (permiso denegado, sin cámara, en uso). La clave remonta el
+  // <Scanner> para volver a pedir la cámara al reintentar.
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scannerKey, setScannerKey] = useState(0);
 
   const [asistencias, setAsistencias] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
@@ -135,8 +153,19 @@ export default function AttendanceScanner() {
             )}
 
             <div className="w-full max-w-[280px] rounded-3xl overflow-hidden border-8 border-pq-cream shadow-inner relative">
-              {isScanning ? (
-                <Scanner onScan={handleScan} />
+              {cameraError ? (
+                <div className="w-full aspect-square bg-red-50 flex flex-col items-center justify-center gap-3 p-4 text-center">
+                  <p className="text-red-700 font-bold text-sm">{cameraError}</p>
+                  <button
+                    type="button"
+                    onClick={() => { setCameraError(null); setScannerKey(k => k + 1); }}
+                    className="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              ) : isScanning ? (
+                <Scanner key={scannerKey} onScan={handleScan} onError={(e) => setCameraError(describeCameraError(e))} />
               ) : (
                 <div className="w-full aspect-square bg-pq-cream/50 flex items-center justify-center">
                   <p className="text-pq-teal-dark font-bold animate-pulse">Procesando...</p>
