@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { PATTERNS, TITLES } from '../lib/validations';
+import { traducirErrorAuth } from '../lib/authErrors';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -45,7 +46,7 @@ export default function ResetPassword() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setErrorMsg(error.message);
+      setErrorMsg(traducirErrorAuth(error));
       setLoading(false);
       return;
     }

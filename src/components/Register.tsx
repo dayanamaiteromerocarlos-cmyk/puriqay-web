@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { MailCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PATTERNS, TITLES, birthDateLimits } from '../lib/validations';
+import { traducirErrorAuth } from '../lib/authErrors';
 
 // Fase 1 del registro (fricción cero): solo lo mínimo para crear la cuenta.
 // El resto de los datos del voluntario (DNI, contacto de emergencia, centro de
@@ -46,7 +47,14 @@ export default function Register() {
     });
 
     if (authError) {
-      setErrorMsg(authError.message);
+      // Con "Confirm email" activo (producción) Supabase no devuelve error si el correo ya
+      // existe, para no revelar qué correos están registrados. Aquí se imita ese mismo
+      // comportamiento cuando sí devuelve el error (p. ej. en entornos sin confirmación).
+      if (authError.code === 'user_already_exists') {
+        setEmailSent(true);
+      } else {
+        setErrorMsg(traducirErrorAuth(authError));
+      }
       setLoading(false);
       return;
     }

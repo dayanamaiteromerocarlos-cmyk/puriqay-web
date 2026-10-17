@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
+import { traducirErrorAuth } from '../lib/authErrors';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ export default function ForgotPassword() {
     setLoading(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(traducirErrorAuth(error));
       return;
     }
     // Mensaje genérico a propósito: no revela si el correo está registrado.

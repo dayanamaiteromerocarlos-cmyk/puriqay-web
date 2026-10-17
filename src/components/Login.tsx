@@ -1,18 +1,32 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { traducirErrorAuth } from '../lib/authErrors';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [resending, setResending] = useState(false);
   const navigate = useNavigate();
+
+  // Si la cuenta existe pero el correo no está confirmado, se puede pedir otro enlace.
+  const handleResend = async () => {
+    setResending(true);
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    setResending(false);
+    if (error) toast.error(traducirErrorAuth(error));
+    else toast.success('Te reenviamos el correo de confirmación. Revisa tu bandeja y el spam.');
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
+    setNeedsConfirmation(false);
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -20,8 +34,8 @@ export default function Login() {
     });
 
     if (error) {
-      console.log("EL MOTIVO DEL ERROR ES:", error.message);
-      setErrorMsg(error.message);
+      setErrorMsg(traducirErrorAuth(error));
+      setNeedsConfirmation(error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message));
     } else {
       navigate('/dashboard');
     }
@@ -75,6 +89,11 @@ export default function Login() {
           {errorMsg && (
             <div className="bg-red-50 text-red-600 text-sm text-center font-bold p-3 rounded-xl border border-red-100">
               {errorMsg}
+              {needsConfirmation && (
+                <button type="button" onClick={handleResend} disabled={resending} className="block mx-auto mt-2 text-pq-teal font-black hover:underline disabled:opacity-60">
+                  {resending ? 'Enviando...' : 'Reenviar correo de confirmación'}
+                </button>
+              )}
             </div>
           )}
 
