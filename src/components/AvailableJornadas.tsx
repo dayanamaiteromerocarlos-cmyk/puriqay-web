@@ -5,6 +5,8 @@ import { Search, ChevronDown, ChevronUp, AlertCircle, MapPin, Calendar, Clock } 
 import toast from 'react-hot-toast';
 import LoadError from './LoadError';
 
+const MIN_JUSTIFICATION_CHARS = 10;
+
 export default function AvailableJornadas() {
   const [jornadas, setJornadas] = useState<any[]>([]);
   const [inscripciones, setInscripciones] = useState<any>({});
@@ -28,6 +30,7 @@ export default function AvailableJornadas() {
   const [selectedJornadaId, setSelectedJornadaId] = useState('');
   const [justificationType, setJustificationType] = useState('Salud');
   const [justificationText, setJustificationText] = useState('');
+  const [savingAbsence, setSavingAbsence] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -128,6 +131,19 @@ export default function AvailableJornadas() {
       setJustificationType('Salud');
       loadData(); 
     }
+  };
+
+  // La inasistencia del equipo interno exige un motivo escrito (no solo el tipo, que
+  // viene preseleccionado). El botón se bloquea mientras guarda para evitar doble envío.
+  const confirmAbsence = async () => {
+    if (savingAbsence) return;
+    if (justificationText.trim().length < MIN_JUSTIFICATION_CHARS) {
+      toast.error(`Escribe el detalle de tu inasistencia (mínimo ${MIN_JUSTIFICATION_CHARS} caracteres).`);
+      return;
+    }
+    setSavingAbsence(true);
+    await handleCommitment(selectedJornadaId, 'NO ASISTIRÁ', justificationType, justificationText.trim());
+    setSavingAbsence(false);
   };
 
   const openJustificationModal = (jornadaId: string) => {
@@ -395,13 +411,14 @@ export default function AvailableJornadas() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-pq-teal-dark mb-2">Detalle (Opcional)</label>
+                <label className="block text-sm font-bold text-pq-teal-dark mb-2">Detalle <span className="text-red-500">*</span></label>
                 <textarea value={justificationText} onChange={(e) => setJustificationText(e.target.value)} rows={3} placeholder="Explica brevemente..." className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-medium text-pq-ink transition-all resize-none"></textarea>
+                <p className="text-xs text-pq-ink/60 font-medium mt-1">Mínimo {MIN_JUSTIFICATION_CHARS} caracteres.</p>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setShowModal(false)} className="px-5 py-2.5 text-pq-ink/70 font-bold hover:bg-pq-cream rounded-xl transition-colors">Cancelar</button>
-              <button onClick={() => handleCommitment(selectedJornadaId, 'NO ASISTIRÁ', justificationType, justificationText)} className="px-5 py-2.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all">Confirmar Inasistencia</button>
+              <button onClick={() => setShowModal(false)} disabled={savingAbsence} className="px-5 py-2.5 text-pq-ink/70 font-bold hover:bg-pq-cream rounded-xl transition-colors">Cancelar</button>
+              <button onClick={confirmAbsence} disabled={savingAbsence} className="px-5 py-2.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all disabled:opacity-60">{savingAbsence ? 'Guardando...' : 'Confirmar Inasistencia'}</button>
             </div>
           </div>
         </div>
