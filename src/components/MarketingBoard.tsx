@@ -172,7 +172,8 @@ export default function MarketingBoard() {
     let query = supabase.from('marketing_tasks').select('id, title, post_date, status').eq('is_active', true);
     if (role !== 'ADMIN') query = query.eq('assigned_to', uid);
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) toast.error('Error al cargar el calendario: ' + error.message);
     if (data) setCalendarTasks(data);
   };
 
@@ -271,7 +272,20 @@ export default function MarketingBoard() {
   };
 
   const executeAction = async (id: string, newStatus: string) => {
-    await supabase.from('marketing_tasks').update({ status: newStatus }).eq('id', id);
+    const { data, error } = await supabase
+      .from('marketing_tasks')
+      .update({ status: newStatus })
+      .eq('id', id)
+      .select('id'); // .select() devuelve las filas realmente afectadas
+
+    if (error) {
+      toast.error('Error al cambiar el estado: ' + error.message);
+    } else if (!data || data.length === 0) {
+      // Si RLS bloquea el UPDATE, PostgREST responde OK con 0 filas y sin error.
+      toast.error('No se pudo cambiar el estado: la base de datos no modificó ninguna tarea (¿permisos?).');
+    } else {
+      toast.success(`Tarea marcada como "${newStatus}".`);
+    }
     refreshTasks();
   };
 
