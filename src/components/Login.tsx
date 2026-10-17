@@ -35,7 +35,7 @@ export default function Login() {
         
         <div className="text-center mb-10">
           <h2 className="text-4xl font-black text-pq-teal-deep flex items-center justify-center gap-1.5 tracking-tight">
-            Puriqay
+            Hola, Pedro
             <span className="w-2.5 h-2.5 rounded-full bg-pq-marku mt-2"></span>
           </h2>
           <p className="text-pq-teal-dark/70 font-bold uppercase tracking-widest text-xs mt-2">Plataforma de Voluntariado</p>
