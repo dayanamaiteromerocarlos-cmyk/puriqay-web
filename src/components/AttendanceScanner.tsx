@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import LoadError from './LoadError';
+import { todayInLima } from '../lib/dates';
 
 const describeCameraError = (err: unknown): string => {
   const name = (err as { name?: string } | null)?.name;
@@ -48,15 +49,13 @@ export default function AttendanceScanner() {
   }, [selectedJornada]);
 
   const fetchJornadas = async () => {
-    const todayObj = new Date();
-    todayObj.setHours(todayObj.getHours() - 5);
-    const today = todayObj.toISOString().split('T')[0];
-    
+    // Solo las jornadas de HOY (hora de Lima): el control de asistencia se hace el día de la
+    // actividad. Antes listaba todas las futuras y permitía registrar asistencia por adelantado.
     const { data, error } = await supabase
       .from('jornadas')
       .select('id, name, date')
-      .gte('date', today)
-      .order('date', { ascending: true });
+      .eq('date', todayInLima())
+      .order('start_time', { ascending: true });
 
     if (data) setJornadas(data);
     // Sin esto, un fallo se veía como "No hay jornadas programadas".
@@ -92,13 +91,26 @@ export default function AttendanceScanner() {
     const token = Array.isArray(scannedData) ? scannedData[0].rawValue : scannedData;
     setMessage({ text: 'Buscando voluntario...', type: 'blue' });
 
-    const { data: profile } = await supabase.from('profiles').select('id, first_name, last_name').eq('qr_token', token).single();
+    const { data: profile, error: profileError } = await supabase.from('profiles').select('id, first_name, last_name').eq('qr_token', token).maybeSingle();
 
-    if (!profile) {
-      setMessage({ text: '❌ QR no válido o no encontrado.', type: 'red' });
-      setTimeout(() => setIsScanning(true), 3000);
+    if (profileError || !profile) {
+      // Un fallo de red o de permisos no es lo mismo que un QR falso: se dice cuál es.
+      setMessage(profileError
+        ? { text: '❌ No se pudo consultar al voluntario. Revisa tu conexión e inténtalo de nuevo.', type: 'red' }
+        : { text: '❌ QR no válido o no encontrado.', type: 'red' });
+      setTimeout(() => { setMessage({ text: '', type: '' }); setIsScanning(true); }, 3000);
       return;
     }
+
+    // ¿Estaba inscrito (ASISTIRÁ) a esta jornada? No bloquea el registro (puede llegar
+    // alguien sin inscripción previa), pero se avisa para que el equipo lo note.
+    const { data: inscripcion } = await supabase
+      .from('inscripciones')
+      .select('id')
+      .eq('jornada_id', selectedJornada)
+      .eq('volunteer_id', profile.id)
+      .eq('status', 'ASISTIRÁ')
+      .maybeSingle();
 
     const { error } = await supabase.from('asistencias').insert([{ jornada_id: selectedJornada, volunteer_id: profile.id }]);
 
@@ -106,7 +118,9 @@ export default function AttendanceScanner() {
       if (error.code === '23505') setMessage({ text: `⚠️ ${profile.first_name} ya estaba registrado.`, type: 'yellow' });
       else setMessage({ text: '❌ Error al guardar asistencia.', type: 'red' });
     } else {
-      setMessage({ text: `✅ ¡${profile.first_name} ${profile.last_name} registrado!`, type: 'green' });
+      setMessage(inscripcion
+        ? { text: `✅ ¡${profile.first_name} ${profile.last_name} registrado!`, type: 'green' }
+        : { text: `⚠️ ${profile.first_name} ${profile.last_name} registrado, pero no estaba inscrito a esta jornada.`, type: 'yellow' });
       fetchAsistencias(selectedJornada);
     }
 
@@ -130,7 +144,7 @@ export default function AttendanceScanner() {
             <option key={j.id} value={j.id}>{j.name} ({new Date(j.date + 'T12:00:00').toLocaleDateString('es-PE')})</option>
           ))}
         </select>
-        {jornadas.length === 0 && <p className="text-sm font-bold text-pq-marku mt-3">No hay jornadas programadas para hoy o el futuro.</p>}
+        {jornadas.length === 0 && <p className="text-sm font-bold text-pq-marku mt-3">No hay jornadas programadas para hoy.</p>}
       </div>
 
       {selectedJornada && (
