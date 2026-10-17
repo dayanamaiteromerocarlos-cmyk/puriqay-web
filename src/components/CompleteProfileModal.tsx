@@ -21,6 +21,9 @@ export default function CompleteProfileModal({ userId, missingFields, onComplete
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [locationText, setLocationText] = useState('📍 Obtener mi ubicación actual');
+  const [showManualLocation, setShowManualLocation] = useState(false);
+  const [manualLat, setManualLat] = useState('');
+  const [manualLng, setManualLng] = useState('');
 
   const [formData, setFormData] = useState({
     documentId: '', emergencyPhone: '', studyCenter: '', otherStudyCenter: '',
@@ -41,22 +44,40 @@ export default function CompleteProfileModal({ userId, missingFields, onComplete
           setLocationText('✅ Ubicación guardada');
         },
         () => {
-          toast.error('Error al obtener ubicación. Asegúrate de darle permisos a tu navegador.');
+          toast.error('No pudimos obtener tu ubicación. Permítela desde el candado de la barra de direcciones o ingresa las coordenadas a mano.');
           setLocationText('📍 Obtener mi ubicación actual');
+          setShowManualLocation(true);
         }
       );
     } else {
-      toast.error('Tu navegador no soporta geolocalización.');
+      toast.error('Tu navegador no soporta geolocalización. Ingresa las coordenadas a mano.');
+      setShowManualLocation(true);
     }
+  };
+
+  // Alternativa cuando el navegador niega el permiso o no tiene geolocalización: el modal
+  // no se puede cerrar, así que sin esto la persona quedaba atrapada.
+  const parseCoord = (value: string, limit: number) => {
+    const n = Number(value.replace(',', '.'));
+    return value.trim() !== '' && Number.isFinite(n) && Math.abs(n) <= limit ? n : null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // La ubicación es un botón, no un input: el navegador no la valida con `required`.
-    if (falta('location') && (lat === null || lng === null)) {
-      toast.error('Debes registrar tu ubicación actual para continuar.');
-      return;
+    // Vale la del GPS o, si no hubo permiso, las coordenadas escritas a mano.
+    let finalLat = lat;
+    let finalLng = lng;
+    if (falta('location') && (finalLat === null || finalLng === null)) {
+      finalLat = parseCoord(manualLat, 90);
+      finalLng = parseCoord(manualLng, 180);
+      if (finalLat === null || finalLng === null) {
+        toast.error(showManualLocation
+          ? 'Las coordenadas no son válidas. Latitud entre -90 y 90, longitud entre -180 y 180 (ej. -12.0464 y -77.0428).'
+          : 'Debes registrar tu ubicación actual para continuar.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -72,8 +93,8 @@ export default function CompleteProfileModal({ userId, missingFields, onComplete
     if (falta('medical_conditions')) payload.medical_conditions = formData.medicalConditions;
     if (falta('shirt_size')) payload.shirt_size = formData.shirtSize;
     if (falta('location')) {
-      payload.latitude = lat;
-      payload.longitude = lng;
+      payload.latitude = finalLat;
+      payload.longitude = finalLng;
     }
 
     const { data, error } = await supabase
@@ -171,6 +192,17 @@ export default function CompleteProfileModal({ userId, missingFields, onComplete
                 }`}>
                   {locationText}
                 </button>
+                {showManualLocation && !lat && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-pq-ink/70 font-medium">
+                      Si tu navegador bloquea la ubicación, escribe las coordenadas. En Google Maps, haz clic derecho sobre tu ubicación y copia los dos números.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="text" inputMode="decimal" name="manualLat" placeholder="Latitud (-12.0464)" value={manualLat} onChange={(e) => setManualLat(e.target.value)} className={inputClass} />
+                      <input type="text" inputMode="decimal" name="manualLng" placeholder="Longitud (-77.0428)" value={manualLng} onChange={(e) => setManualLng(e.target.value)} className={inputClass} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
