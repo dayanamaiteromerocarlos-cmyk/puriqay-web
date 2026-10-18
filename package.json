@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "deploy": "node scripts/deploy.mjs",
     "preview": "vite preview",
     "capturas": "node scripts/capturas/capturar.mjs"
   },
