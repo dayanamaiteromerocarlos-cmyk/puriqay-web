@@ -68,6 +68,13 @@ for (const cuenta of cuentas) {
     await page.screenshot({ path: join(carpeta, `${i + 1}-${nombreArchivo(nombre)}.png`), fullPage: true });
   }
 
+  // "Mi Perfil" no está en el menú: se abre con el nombre, arriba de "Cerrar Sesión".
+  if (ANCHO < 768) await abrirMenu.click();
+  await page.locator('button[title*="Ver mi perfil"]').click();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: join(carpeta, `${pestañas.length + 1}-mi-perfil.png`), fullPage: true });
+
   console.log(`${cuenta}: ${pestañas.length} pestañas (${pestañas.join(', ')})` +
     (errores.length ? `\n  errores de la página: ${errores.join(' | ')}` : ''));
   await page.close();

@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase';
 import LoadError from './LoadError';
 import toast from 'react-hot-toast';
 import { permisos, type Perfil } from '../lib/permisos';
-import { Search, ChevronDown, ChevronUp, Phone, HeartPulse, GraduationCap, MapPin, UserSquare2, Shirt, AlertCircle, UserCog } from 'lucide-react';
+import HistorialCambios from './HistorialCambios';
+import { Search, ChevronDown, ChevronUp, Phone, HeartPulse, GraduationCap, MapPin, UserSquare2, Shirt, AlertCircle, UserCog, Power } from 'lucide-react';
 
 // Actualizamos el perfil con TODOS los datos que trae el registro
 type Profile = {
@@ -88,6 +89,23 @@ export default function VolunteerList({ userId, perfil }: { userId: string | nul
     setNewRole(vol.role);
     setNewArea(vol.area ?? SIN_AREA);
     setEditing(vol);
+  };
+
+  // Mismas reglas que editar rol y área; la base decide y, si no se puede, lo dice.
+  const toggleActive = async (vol: Profile) => {
+    const nombre = vol.first_name ? `${vol.first_name} ${vol.last_name}` : 'esta persona';
+    const pregunta = vol.is_active
+      ? `¿Desactivar a ${nombre}? Perderá sus permisos de equipo interno hasta que la vuelvan a activar.`
+      : `¿Activar de nuevo a ${nombre}?`;
+    if (!confirm(pregunta)) return;
+
+    const { error } = await supabase.rpc('cambiar_estado', { p_persona: vol.id, p_activo: !vol.is_active });
+    if (error) {
+      toast.error('No se pudo cambiar el estado: ' + error.message);
+      return;
+    }
+    toast.success(vol.is_active ? `${nombre} quedó inactivo/a.` : `${nombre} quedó activo/a.`);
+    fetchVolunteers();
   };
 
   const rolesPermitidos = [...new Set(opciones.map(o => o.role))];
@@ -268,7 +286,17 @@ export default function VolunteerList({ userId, perfil }: { userId: string | nul
                     {isExpanded && (
                       <div className="p-5 md:p-6 border-t-2 border-pq-cream-dark bg-white">
                         {p.editaRolArea && vol.id !== userId && (
-                          <div className={`flex justify-end ${p.veDatosPersonales ? 'mb-5' : ''}`}>
+                          <div className={`flex flex-wrap justify-end gap-3 ${p.veDatosPersonales ? 'mb-5' : ''}`}>
+                            <button
+                              onClick={() => toggleActive(vol)}
+                              className={`flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-xl border-2 transition-colors ${
+                                vol.is_active
+                                  ? 'text-red-600 bg-red-50 hover:bg-red-100 border-red-200'
+                                  : 'text-green-700 bg-green-50 hover:bg-green-100 border-green-200'
+                              }`}
+                            >
+                              <Power size={16} /> {vol.is_active ? 'Desactivar' : 'Activar'}
+                            </button>
                             <button
                               onClick={() => openEdit(vol)}
                               className="flex items-center gap-2 text-sm font-bold text-pq-teal-dark bg-pq-teal/5 hover:bg-pq-teal/10 border-2 border-pq-teal/20 py-2 px-4 rounded-xl transition-colors"
@@ -336,6 +364,8 @@ export default function VolunteerList({ userId, perfil }: { userId: string | nul
           </div>
         )}
       </div>
+
+      {p.veHistorialCambios && <HistorialCambios />}
 
       {editing && (
         <div className="fixed inset-0 bg-pq-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">

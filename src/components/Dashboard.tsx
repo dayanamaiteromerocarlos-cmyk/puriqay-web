@@ -10,8 +10,9 @@ import AttendanceScanner from './AttendanceScanner';
 import AvailableJornadas from './AvailableJornadas';
 import MarketingBoard from './MarketingBoard';
 import CompleteProfileModal from './CompleteProfileModal';
+import MiPerfil from './MiPerfil';
 import { permisos } from '../lib/permisos';
-import { Users, QrCode, LogOut, ChevronLeft, Menu, CalendarDays, CalendarCheck, MapPin, Camera, Megaphone } from 'lucide-react';
+import { Users, QrCode, LogOut, ChevronLeft, Menu, CalendarDays, CalendarCheck, MapPin, Camera, Megaphone, UserCircle } from 'lucide-react';
 
 // Campos "avanzados" que Register.tsx ya no pide en la fase 1 (fricción cero).
 // Solo se le exigen al equipo interno (COORDINADOR/ADMIN): si a uno de ellos le
@@ -21,12 +22,17 @@ const ADVANCED_PROFILE_FIELDS = [
   'document_id', 'emergency_phone', 'study_center', 'career', 'address', 'medical_conditions', 'shirt_size'
 ] as const;
 
+// "Ana María" + "Pérez Gómez" -> "Ana Pérez": un nombre y un apellido para el menú.
+const nombreCorto = (first: string | null, last: string | null) =>
+  [first, last].map(s => s?.trim().split(/\s+/)[0] ?? '').filter(Boolean).join(' ');
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [area, setArea] = useState<string | null>(null);
   const [isActive, setIsActive] = useState<boolean | null>(null);
+  const [nombre, setNombre] = useState('');
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [missingProfileFields, setMissingProfileFields] = useState<string[]>([]);
@@ -69,7 +75,7 @@ export default function Dashboard() {
     // Nota: esta lista de columnas debe reflejar ADVANCED_PROFILE_FIELDS de arriba.
     const { data, error } = await supabase
       .from('profiles')
-      .select('role, qr_token, area, is_active, document_id, emergency_phone, study_center, career, address, medical_conditions, shirt_size, latitude, longitude')
+      .select('role, qr_token, area, is_active, first_name, last_name, document_id, emergency_phone, study_center, career, address, medical_conditions, shirt_size, latitude, longitude')
       .eq('id', user.id)
       .single();
 
@@ -86,6 +92,7 @@ export default function Dashboard() {
       setRole(data.role);
       setArea(data.area);
       setIsActive(data.is_active);
+      setNombre(nombreCorto(data.first_name, data.last_name));
       setQrToken(data.qr_token);
       setActiveTab('available_jornadas');
 
@@ -222,6 +229,19 @@ export default function Dashboard() {
         </nav>
 
         <div className="p-4 border-t border-pq-cream-dark shrink-0">
+          <button
+            onClick={() => {
+              setActiveTab('perfil');
+              if (window.innerWidth < 768) setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center p-3 mb-2 rounded-xl transition-all font-bold ${
+              activeTab === 'perfil' ? 'bg-pq-teal text-white shadow-md shadow-pq-teal/30' : 'text-pq-teal-deep hover:bg-pq-cream-dark'
+            }`}
+            title={!isSidebarOpen ? `${nombre || 'Mi perfil'} · Ver mi perfil` : 'Ver mi perfil'}
+          >
+            <UserCircle size={22} className="min-w-[22px]" />
+            {isSidebarOpen && <span className="ml-3 truncate">{nombre || 'Mi perfil'}</span>}
+          </button>
           <button 
             onClick={handleLogout} 
             className="w-full flex items-center p-3 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-all font-medium"
@@ -285,6 +305,12 @@ export default function Dashboard() {
           {activeTab === 'marketing' && (
             <div className="max-w-6xl mx-auto">
               <MarketingBoard />
+            </div>
+          )}
+
+          {activeTab === 'perfil' && userId && (
+            <div className="max-w-4xl mx-auto">
+              <MiPerfil userId={userId} onSaved={(first, last) => setNombre(nombreCorto(first, last))} />
             </div>
           )}
 

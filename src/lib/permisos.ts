@@ -34,7 +34,9 @@ export function permisos({ role, area, is_active }: Perfil) {
     esInterno,
     esVoluntario: role === 'VOLUNTARIO',
     veDatosPersonales,
+    // Editar rol y área también da permiso para activar o desactivar (mismas reglas).
     editaRolArea,
+    veHistorialCambios: cargo(ADMIN, [AREAS.GERENCIA, AREAS.TI, AREAS.GESTION_HUMANA]),
     veVoluntarios: veDatosPersonales || editaRolArea,
     gestionaJornadas,
     supervisaMarketing,
