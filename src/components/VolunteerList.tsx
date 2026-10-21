@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import LoadError from './LoadError';
-import { Search, ChevronDown, ChevronUp, Phone, HeartPulse, GraduationCap, MapPin, UserSquare2, Shirt, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { permisos, type Perfil } from '../lib/permisos';
+import { Search, ChevronDown, ChevronUp, Phone, HeartPulse, GraduationCap, MapPin, UserSquare2, Shirt, AlertCircle, UserCog } from 'lucide-react';
 
 // Actualizamos el perfil con TODOS los datos que trae el registro
 type Profile = {
@@ -23,7 +25,12 @@ type Profile = {
   is_active: boolean;
 };
 
-export default function VolunteerList() {
+type OpcionRolArea = { role: string; area: string | null };
+
+const SIN_AREA = '';
+
+export default function VolunteerList({ userId, perfil }: { userId: string | null; perfil: Perfil }) {
+  const p = permisos(perfil);
   const [volunteers, setVolunteers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -35,25 +42,77 @@ export default function VolunteerList() {
   // Control de la tarjeta desplegable
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Modal "Editar rol y área". Las opciones las calcula la base (opciones_rol_area)
+  // según quién edita y a quién; la app solo arma los desplegables con ellas.
+  const [editing, setEditing] = useState<Profile | null>(null);
+  const [opciones, setOpciones] = useState<OpcionRolArea[]>([]);
+  const [newRole, setNewRole] = useState('');
+  const [newArea, setNewArea] = useState(SIN_AREA);
+  const [saving, setSaving] = useState(false);
+
+  // El perfil de quien mira no cambia mientras la pestaña está abierta: se carga una vez.
   useEffect(() => {
     fetchVolunteers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchVolunteers = async () => {
     setLoading(true);
     setLoadError(null);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Quien no ve datos personales (p. ej. un coordinador de TI, que solo edita rol y
+    // área) lee la vista con nombre, rol y área; `profiles` solo le mostraría su fila.
+    const { data, error } = p.veDatosPersonales
+      ? await supabase.from('profiles').select('*').order('created_at', { ascending: false })
+      : await supabase.from('perfiles_basicos').select('id, first_name, last_name, role, area, is_active').order('last_name');
 
     if (error) {
       console.error('Error al cargar voluntarios:', error);
       setLoadError(error.message);
     } else {
-      setVolunteers(data || []);
+      setVolunteers((data || []) as Profile[]);
     }
     setLoading(false);
+  };
+
+  const openEdit = async (vol: Profile) => {
+    const { data, error } = await supabase.rpc('opciones_rol_area', { p_persona: vol.id });
+    if (error) {
+      toast.error('No se pudieron cargar las opciones: ' + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      toast.error('No tienes permiso para cambiar el rol o el área de esta persona.');
+      return;
+    }
+    setOpciones(data);
+    setNewRole(vol.role);
+    setNewArea(vol.area ?? SIN_AREA);
+    setEditing(vol);
+  };
+
+  const rolesPermitidos = [...new Set(opciones.map(o => o.role))];
+  const areasPermitidas = opciones.filter(o => o.role === newRole).map(o => o.area ?? SIN_AREA);
+
+  const changeRole = (role: string) => {
+    setNewRole(role);
+    const areas = opciones.filter(o => o.role === role).map(o => o.area ?? SIN_AREA);
+    if (!areas.includes(newArea)) setNewArea(areas[0] ?? SIN_AREA);
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSaving(true);
+    const { error } = await supabase.rpc('cambiar_rol_area', {
+      p_persona: editing.id, p_role: newRole, p_area: newArea || null,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error('No se pudo guardar: ' + error.message);
+      return;
+    }
+    toast.success(`Se actualizó a ${editing.first_name ?? 'la persona'}.`);
+    setEditing(null);
+    fetchVolunteers();
   };
 
   // Filtrador Inteligente
@@ -102,14 +161,18 @@ export default function VolunteerList() {
           <h2 className="text-2xl font-black text-pq-teal-deep mb-2 flex items-center gap-2">
             Base de Datos de Voluntarios <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
           </h2>
-          <p className="text-pq-ink/70 mb-6 font-medium">Gestiona y consulta la información de todo tu equipo y voluntarios externos.</p>
+          <p className="text-pq-ink/70 mb-6 font-medium">
+            {p.veDatosPersonales
+              ? 'Gestiona y consulta la información de todo tu equipo y voluntarios externos.'
+              : 'Ves el nombre, el rol y el área de cada persona. Los datos personales solo los ve Gestión Humana.'}
+          </p>
           
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-3.5 text-pq-teal-dark/50" size={20} />
               <input 
                 type="text" 
-                placeholder="Buscar por nombre, DNI o correo..." 
+                placeholder={p.veDatosPersonales ? 'Buscar por nombre, DNI o correo...' : 'Buscar por nombre...'} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink"
@@ -136,7 +199,7 @@ export default function VolunteerList() {
           <div className="space-y-3">
             <div className="hidden md:grid grid-cols-12 gap-4 px-5 pb-2 text-[10px] font-black text-pq-teal-dark uppercase tracking-widest border-b-2 border-pq-cream-dark">
               <div className="col-span-4">Voluntario</div>
-              <div className="col-span-3">Contacto</div>
+              <div className="col-span-3">{p.veDatosPersonales ? 'Contacto' : ''}</div>
               <div className="col-span-3">Rol / Área</div>
               <div className="col-span-2 text-right">Estado</div>
             </div>
@@ -170,8 +233,12 @@ export default function VolunteerList() {
                       </div>
 
                       <div className="col-span-3 w-full flex flex-row md:flex-col gap-2 md:gap-0.5">
-                        <span className="text-sm font-bold text-pq-teal-dark flex items-center gap-1.5"><Phone size={14} className="text-pq-ink/40"/> {vol.phone || 'Sin número'}</span>
-                        <span className="text-xs font-medium text-pq-ink/50 flex items-center gap-1.5"><UserSquare2 size={12}/> DNI: {vol.document_id || 'N/A'}</span>
+                        {p.veDatosPersonales && (
+                          <>
+                            <span className="text-sm font-bold text-pq-teal-dark flex items-center gap-1.5"><Phone size={14} className="text-pq-ink/40"/> {vol.phone || 'Sin número'}</span>
+                            <span className="text-xs font-medium text-pq-ink/50 flex items-center gap-1.5"><UserSquare2 size={12}/> DNI: {vol.document_id || 'N/A'}</span>
+                          </>
+                        )}
                       </div>
 
                       <div className="col-span-3 w-full">
@@ -200,6 +267,17 @@ export default function VolunteerList() {
                     {/* FICHA TÉCNICA EXPANDIDA */}
                     {isExpanded && (
                       <div className="p-5 md:p-6 border-t-2 border-pq-cream-dark bg-white">
+                        {p.editaRolArea && vol.id !== userId && (
+                          <div className={`flex justify-end ${p.veDatosPersonales ? 'mb-5' : ''}`}>
+                            <button
+                              onClick={() => openEdit(vol)}
+                              className="flex items-center gap-2 text-sm font-bold text-pq-teal-dark bg-pq-teal/5 hover:bg-pq-teal/10 border-2 border-pq-teal/20 py-2 px-4 rounded-xl transition-colors"
+                            >
+                              <UserCog size={16} /> Editar rol y área
+                            </button>
+                          </div>
+                        )}
+                        {p.veDatosPersonales && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           
                           {/* Columna 1: Emergencia y Salud */}
@@ -245,6 +323,10 @@ export default function VolunteerList() {
                           </div>
 
                         </div>
+                        )}
+                        {!p.veDatosPersonales && !(p.editaRolArea && vol.id !== userId) && (
+                          <p className="text-sm text-pq-ink/60 font-medium">No hay más datos que puedas ver de esta persona.</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -254,6 +336,56 @@ export default function VolunteerList() {
           </div>
         )}
       </div>
+
+      {editing && (
+        <div className="fixed inset-0 bg-pq-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-pq-cream-dark">
+            <h3 className="text-xl font-black text-pq-teal-deep mb-1 flex items-center gap-2">
+              Editar rol y área <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
+            </h3>
+            <p className="text-sm text-pq-ink/70 mb-6 font-medium">
+              {editing.first_name} {editing.last_name} · hoy es {editing.role === 'VOLUNTARIO' ? 'voluntario externo' : `${editing.role} de ${editing.area}`}
+            </p>
+
+            <label className="block text-xs font-bold text-pq-teal-dark uppercase tracking-wider mb-1">Rol</label>
+            <select
+              value={newRole}
+              onChange={(e) => changeRole(e.target.value)}
+              className="w-full mb-4 px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-bold text-pq-teal-deep"
+            >
+              {!rolesPermitidos.includes(newRole) && <option value={newRole} disabled>{newRole}</option>}
+              {rolesPermitidos.map(r => <option key={r} value={r}>{r === 'VOLUNTARIO' ? 'VOLUNTARIO (externo)' : r}</option>)}
+            </select>
+
+            <label className="block text-xs font-bold text-pq-teal-dark uppercase tracking-wider mb-1">Área</label>
+            <select
+              value={newArea}
+              onChange={(e) => setNewArea(e.target.value)}
+              className="w-full mb-2 px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-bold text-pq-teal-deep"
+            >
+              {!areasPermitidas.includes(newArea) && <option value={newArea} disabled>{newArea || 'Sin área'}</option>}
+              {areasPermitidas.map(a => <option key={a || 'sin-area'} value={a}>{a || 'Sin área'}</option>)}
+            </select>
+            <p className="text-xs text-pq-ink/50 font-medium mb-6">Solo aparecen las opciones que tu cargo te permite asignar.</p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEditing(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-pq-teal-dark bg-pq-cream hover:bg-pq-cream-dark transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={saving || (newRole === editing.role && newArea === (editing.area ?? SIN_AREA)) || !areasPermitidas.includes(newArea)}
+                className="flex-1 py-3 rounded-xl font-bold text-white bg-pq-teal hover:bg-pq-teal-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {saving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

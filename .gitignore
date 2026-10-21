@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Capturas generadas por scripts/capturas/capturar.mjs
+scripts/capturas/salida/

@@ -3,10 +3,11 @@ import { supabase } from '../lib/supabase';
 import {
   AlertCircle, Clock, CheckCircle, ExternalLink, Send, Edit3, CheckCircle2,
   Hourglass, Archive, CalendarPlus, Link2, Pencil, ChevronDown, ChevronUp,
-  Filter, ArrowUpDown, X, Check
+  Filter, ArrowUpDown, X, Check, Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MarketingCalendar from './MarketingCalendar';
+import { AREAS, fetchNombres, permisos } from '../lib/permisos';
 
 type MarketingTask = {
   id: string;
@@ -48,7 +49,9 @@ export default function MarketingBoard() {
   const [fetching, setFetching] = useState(true);
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  // Supervisor = ADMIN de Gerencia General, TI o Comunicación: ve y gestiona todas las
+  // tareas. Los demás solo ven las que tienen asignadas.
+  const [isSupervisor, setIsSupervisor] = useState(false);
   const [identityLoaded, setIdentityLoaded] = useState(false);
 
   // Acordeón: "Asignar Tarea" viene plegado por defecto
@@ -112,14 +115,15 @@ export default function MarketingBoard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUserId(user.id);
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      if (profile) setUserRole(profile.role);
+      const { data: profile } = await supabase.from('profiles').select('role, area, is_active').eq('id', user.id).single();
+      if (profile) setIsSupervisor(permisos(profile).supervisaMarketing);
 
       const { data: teamData } = await supabase
-        .from('profiles')
+        .from('perfiles_basicos')
         .select('id, first_name, last_name, area')
         .in('role', ['ADMIN', 'COORDINADOR'])
-        .eq('area', 'Comunicación y Difusión');
+        .eq('area', AREAS.COMUNICACION)
+        .eq('is_active', true);
       if (teamData) setTeam(teamData);
     }
     setIdentityLoaded(true);
@@ -131,15 +135,15 @@ export default function MarketingBoard() {
 
   // Tablero paginado: status, mes/año, orden y página se resuelven en la consulta,
   // no filtrando el arreglo en el cliente.
-  const fetchTasks = async (uid: string, role: string | null) => {
+  const fetchTasks = async (uid: string, supervisor: boolean) => {
     setFetching(true);
 
     let query = supabase
       .from('marketing_tasks')
-      .select('*, profiles(first_name, last_name)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('is_active', true);
 
-    if (role !== 'ADMIN') query = query.eq('assigned_to', uid);
+    if (!supervisor) query = query.eq('assigned_to', uid);
     if (statusFilter !== 'TODOS') query = query.eq('status', statusFilter);
 
     if (monthYearFilter) {
@@ -156,11 +160,12 @@ export default function MarketingBoard() {
     query = query.range(from, from + PAGE_SIZE - 1);
 
     const { data, count, error } = await query;
+    const { nombres, error: nombresError } = await fetchNombres((data || []).map(t => t.assigned_to));
 
-    if (error) {
-      toast.error('Error al cargar tareas: ' + error.message);
+    if (error || nombresError) {
+      toast.error('Error al cargar tareas: ' + (error || nombresError)!.message);
     } else {
-      setTasks(data || []);
+      setTasks((data || []).map(t => ({ ...t, profiles: nombres[t.assigned_to] || null })));
       setTotalCount(count ?? 0);
     }
     setFetching(false);
@@ -168,9 +173,9 @@ export default function MarketingBoard() {
 
   // El calendario es una vista general (no paginada, no filtrada por status/mes)
   // para que siga funcionando como un resumen completo del mes que se navegue.
-  const fetchCalendarTasks = async (uid: string, role: string | null) => {
+  const fetchCalendarTasks = async (uid: string, supervisor: boolean) => {
     let query = supabase.from('marketing_tasks').select('id, title, post_date, status').eq('is_active', true);
-    if (role !== 'ADMIN') query = query.eq('assigned_to', uid);
+    if (!supervisor) query = query.eq('assigned_to', uid);
 
     const { data, error } = await query;
     if (error) toast.error('Error al cargar el calendario: ' + error.message);
@@ -179,21 +184,21 @@ export default function MarketingBoard() {
 
   const refreshTasks = () => {
     if (!userId) return;
-    fetchTasks(userId, userRole);
-    fetchCalendarTasks(userId, userRole);
+    fetchTasks(userId, isSupervisor);
+    fetchCalendarTasks(userId, isSupervisor);
   };
 
   useEffect(() => {
     if (!identityLoaded || !userId) return;
-    fetchTasks(userId, userRole);
+    fetchTasks(userId, isSupervisor);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [identityLoaded, userId, userRole, page, statusFilter, monthYearFilter, sortOrder]);
+  }, [identityLoaded, userId, isSupervisor, page, statusFilter, monthYearFilter, sortOrder]);
 
   useEffect(() => {
     if (!identityLoaded || !userId) return;
-    fetchCalendarTasks(userId, userRole);
+    fetchCalendarTasks(userId, isSupervisor);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [identityLoaded, userId, userRole]);
+  }, [identityLoaded, userId, isSupervisor]);
 
   // Si un archivado (u otro cambio de filtro) deja una página vacía que no es la primera,
   // retrocedemos una página en vez de mostrar un tablero vacío "atascado".
@@ -402,6 +407,28 @@ export default function MarketingBoard() {
     }
   };
 
+  // Borrar de verdad (p. ej. tareas de prueba). Pide dos confirmaciones: un "¿seguro?"
+  // y escribir el título exacto. Para sacar una tarea del tablero sin perderla, Archivar.
+  const deleteTask = async (task: MarketingTask) => {
+    if (!confirm(`¿Borrar definitivamente "${task.title}"? No se puede deshacer. Si solo quieres sacarla del tablero, usa Archivar.`)) return;
+    const typed = prompt('Para confirmar, escribe el título exacto de la tarea:');
+    if (typed === null) return;
+    if (typed.trim() !== task.title.trim()) {
+      toast.error('El título no coincide. No se borró nada.');
+      return;
+    }
+
+    const { data, error } = await supabase.from('marketing_tasks').delete().eq('id', task.id).select('id');
+    if (error) {
+      toast.error('Error al borrar la tarea: ' + error.message);
+    } else if (!data || data.length === 0) {
+      toast.error('No se pudo borrar: la base de datos no eliminó ninguna tarea (¿permisos?).');
+    } else {
+      toast.success('Tarea borrada.');
+      refreshTasks();
+    }
+  };
+
   const getAlertStatus = (draft_date: string, status: string) => {
     if (status === 'Publicado' || status === 'En Revisión') return null;
     const today = new Date();
@@ -438,8 +465,6 @@ export default function MarketingBoard() {
 
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   };
-
-  const isSupervisor = userRole === 'ADMIN';
 
   return (
     <div className="space-y-8">
@@ -759,6 +784,12 @@ export default function MarketingBoard() {
                       {isSupervisor && (
                         <button onClick={() => archiveTask(task.id)} className="flex items-center justify-center gap-1 text-red-400 hover:text-red-600 hover:bg-red-50 font-bold py-2 px-3 rounded-xl transition-colors text-xs">
                           <Archive size={14} /> Archivar
+                        </button>
+                      )}
+
+                      {isSupervisor && (
+                        <button onClick={() => deleteTask(task)} className="flex items-center justify-center gap-1 text-red-500 hover:text-white hover:bg-red-500 border border-red-200 font-bold py-2 px-3 rounded-xl transition-colors text-xs">
+                          <Trash2 size={14} /> Borrar
                         </button>
                       )}
                     </div>

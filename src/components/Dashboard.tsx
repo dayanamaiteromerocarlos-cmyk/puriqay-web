@@ -10,6 +10,7 @@ import AttendanceScanner from './AttendanceScanner';
 import AvailableJornadas from './AvailableJornadas';
 import MarketingBoard from './MarketingBoard';
 import CompleteProfileModal from './CompleteProfileModal';
+import { permisos } from '../lib/permisos';
 import { Users, QrCode, LogOut, ChevronLeft, Menu, CalendarDays, CalendarCheck, MapPin, Camera, Megaphone } from 'lucide-react';
 
 // Campos "avanzados" que Register.tsx ya no pide en la fase 1 (fricción cero).
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [area, setArea] = useState<string | null>(null);
+  const [isActive, setIsActive] = useState<boolean | null>(null);
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [missingProfileFields, setMissingProfileFields] = useState<string[]>([]);
@@ -67,7 +69,7 @@ export default function Dashboard() {
     // Nota: esta lista de columnas debe reflejar ADVANCED_PROFILE_FIELDS de arriba.
     const { data, error } = await supabase
       .from('profiles')
-      .select('role, qr_token, area, document_id, emergency_phone, study_center, career, address, medical_conditions, shirt_size, latitude, longitude')
+      .select('role, qr_token, area, is_active, document_id, emergency_phone, study_center, career, address, medical_conditions, shirt_size, latitude, longitude')
       .eq('id', user.id)
       .single();
 
@@ -83,6 +85,7 @@ export default function Dashboard() {
     if (data) {
       setRole(data.role);
       setArea(data.area);
+      setIsActive(data.is_active);
       setQrToken(data.qr_token);
       setActiveTab('available_jornadas');
 
@@ -152,12 +155,8 @@ export default function Dashboard() {
     );
   }
 
-  const isSuperAdmin = (area === 'Gerencia General' || area === 'Tecnologías de la Información') && role === 'ADMIN';
-  const isProyectos = area === 'Gestión de Proyectos Sociales' && role === 'ADMIN';
-  const isRRHH = area === 'Gestión Humana' && role === 'ADMIN';
-  const isMarketing = area === 'Comunicación y Difusión'; 
-  const isInternal = role === 'ADMIN' || role === 'COORDINADOR';
-  const isVoluntario = role === 'VOLUNTARIO';
+  const perfil = { role, area, is_active: isActive };
+  const p = permisos(perfil);
 
   return (
     <div className="flex h-screen bg-pq-cream overflow-hidden relative">
@@ -203,26 +202,21 @@ export default function Dashboard() {
             <div className="bg-pq-cream rounded-xl p-3 border border-pq-cream-dark/50">
               <p className="text-xs font-black text-pq-teal-deep">{role}</p>
               <p className="text-[10px] text-pq-ink/60 truncate uppercase font-bold mt-0.5">{area}</p>
+              {isActive === false && (
+                <p className="text-[10px] text-red-600 uppercase font-black mt-1">Cuenta inactiva</p>
+              )}
             </div>
           </div>
         )}
 
         <nav className="flex-1 px-4 py-2 overflow-y-auto">
-          {(isSuperAdmin || isProyectos) && <SidebarItem id="locations" label="Lugares" icon={MapPin} />}
-          {(isSuperAdmin || isProyectos) && <SidebarItem id="jornadas" label="Jornadas" icon={CalendarDays} />}
-          {(isSuperAdmin || isRRHH) && <SidebarItem id="volunteers" label="Voluntarios" icon={Users} />}
-          {(isSuperAdmin || isMarketing) && <SidebarItem id="marketing" label="Área de Marketing" icon={Megaphone} />}
+          {p.gestionaJornadas && <SidebarItem id="locations" label="Lugares" icon={MapPin} />}
+          {p.gestionaJornadas && <SidebarItem id="jornadas" label="Jornadas" icon={CalendarDays} />}
+          {p.veVoluntarios && <SidebarItem id="volunteers" label="Voluntarios" icon={Users} />}
+          {p.veMarketing && <SidebarItem id="marketing" label="Área de Marketing" icon={Megaphone} />}
 
-          {isInternal && (
-            <>
-              <SidebarItem id="available_jornadas" label="Próximas Jornadas" icon={CalendarCheck} />
-              <SidebarItem id="scanner" label="Control de Asistencia" icon={Camera} />
-            </>
-          )}
-
-          {isVoluntario && (
-            <SidebarItem id="available_jornadas" label="Próximas Jornadas" icon={CalendarCheck} />
-          )}
+          <SidebarItem id="available_jornadas" label="Próximas Jornadas" icon={CalendarCheck} />
+          {p.esInterno && <SidebarItem id="scanner" label="Control de Asistencia" icon={Camera} />}
 
           <SidebarItem id="qr" label="Mi Código QR" icon={QrCode} />
         </nav>
@@ -272,7 +266,7 @@ export default function Dashboard() {
 
           {activeTab === 'volunteers' && (
             <div className="max-w-6xl mx-auto">
-              <VolunteerList />
+              <VolunteerList userId={userId} perfil={perfil} />
             </div>
           )}
 

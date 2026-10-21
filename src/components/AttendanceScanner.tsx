@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import LoadError from './LoadError';
 import { todayInLima } from '../lib/dates';
+import { fetchNombres } from '../lib/permisos';
 
 const describeCameraError = (err: unknown): string => {
   const name = (err as { name?: string } | null)?.name;
@@ -65,22 +66,25 @@ export default function AttendanceScanner() {
   const fetchAsistencias = async (jornadaId: string) => {
     setLoadingStats(true);
     setStatsError(null);
-    const { data: insData, error: insError } = await supabase.from('inscripciones').select('id').eq('jornada_id', jornadaId).eq('status', 'ASISTIRÁ');
-    const totalInscritos = insData ? insData.length : 0;
+    // Solo el número: las inscripciones de otras personas (con sus motivos) no son
+    // visibles para todo el equipo interno.
+    const { data: totalInscritos, error: insError } = await supabase.rpc('contar_esperados', { p_jornada: jornadaId });
 
     const { data, error } = await supabase
       .from('asistencias')
-      .select('*, profiles(first_name, last_name, role)')
+      .select('*')
       .eq('jornada_id', jornadaId)
       .order('created_at', { ascending: false });
 
+    const { nombres, error: nombresError } = await fetchNombres((data || []).map(a => a.volunteer_id));
     if (!error && data) {
-      setAsistencias(data);
+      const conNombre = data.map(asist => ({ ...asist, profiles: nombres[asist.volunteer_id] || null }));
+      setAsistencias(conNombre);
       let internos = 0; let externos = 0;
-      data.forEach(asist => { if (asist.profiles?.role === 'VOLUNTARIO') externos++; else internos++; });
-      setStats({ inscritos: totalInscritos, total: data.length, internos, externos });
+      conNombre.forEach(asist => { if (asist.profiles?.role === 'VOLUNTARIO') externos++; else internos++; });
+      setStats({ inscritos: totalInscritos ?? 0, total: data.length, internos, externos });
     }
-    const failure = error || insError;
+    const failure = error || insError || nombresError;
     if (failure) setStatsError(failure.message);
     setLoadingStats(false);
   };
@@ -91,7 +95,9 @@ export default function AttendanceScanner() {
     const token = Array.isArray(scannedData) ? scannedData[0].rawValue : scannedData;
     setMessage({ text: 'Buscando voluntario...', type: 'blue' });
 
-    const { data: profile, error: profileError } = await supabase.from('profiles').select('id, first_name, last_name').eq('qr_token', token).maybeSingle();
+    // Devuelve solo nombre, apellido y si estaba inscrito (ASISTIRÁ) a esta jornada.
+    const { data: encontrados, error: profileError } = await supabase.rpc('buscar_por_qr', { p_token: token, p_jornada: selectedJornada });
+    const profile = encontrados?.[0];
 
     if (profileError || !profile) {
       // Un fallo de red o de permisos no es lo mismo que un QR falso: se dice cuál es.
@@ -102,23 +108,15 @@ export default function AttendanceScanner() {
       return;
     }
 
-    // ¿Estaba inscrito (ASISTIRÁ) a esta jornada? No bloquea el registro (puede llegar
-    // alguien sin inscripción previa), pero se avisa para que el equipo lo note.
-    const { data: inscripcion } = await supabase
-      .from('inscripciones')
-      .select('id')
-      .eq('jornada_id', selectedJornada)
-      .eq('volunteer_id', profile.id)
-      .eq('status', 'ASISTIRÁ')
-      .maybeSingle();
-
     const { error } = await supabase.from('asistencias').insert([{ jornada_id: selectedJornada, volunteer_id: profile.id }]);
 
     if (error) {
       if (error.code === '23505') setMessage({ text: `⚠️ ${profile.first_name} ya estaba registrado.`, type: 'yellow' });
       else setMessage({ text: '❌ Error al guardar asistencia.', type: 'red' });
     } else {
-      setMessage(inscripcion
+      // No estar inscrito no bloquea el registro (puede llegar alguien sin inscripción
+      // previa), pero se avisa para que el equipo lo note.
+      setMessage(profile.inscrito
         ? { text: `✅ ¡${profile.first_name} ${profile.last_name} registrado!`, type: 'green' }
         : { text: `⚠️ ${profile.first_name} ${profile.last_name} registrado, pero no estaba inscrito a esta jornada.`, type: 'yellow' });
       fetchAsistencias(selectedJornada);

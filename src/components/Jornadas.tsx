@@ -5,6 +5,7 @@ import { getActionLineColor } from '../lib/catalogs';
 import LoadError from './LoadError';
 import toast from 'react-hot-toast';
 import { todayInLima } from '../lib/dates';
+import { fetchNombres } from '../lib/permisos';
 
 export default function Jornadas() {
   const [jornadas, setJornadas] = useState<any[]>([]);
@@ -44,22 +45,26 @@ export default function Jornadas() {
       .eq('status', 'ACTIVO');
     if (locData) setLocations(locData);
 
+    // Nombres del equipo interno: salen de `perfiles_basicos`, no de `profiles` (que
+    // solo muestra a cada quien su propio perfil, salvo a Gestión Humana).
     const { data: coordData, error: coordError } = await supabase
-      .from('profiles')
+      .from('perfiles_basicos')
       .select('id, first_name, last_name')
-      .in('role', ['ADMIN', 'COORDINADOR']);
+      .in('role', ['ADMIN', 'COORDINADOR'])
+      .eq('is_active', true);
     if (coordData) setCoordinators(coordData);
 
     const { data: jorData, error: jorError } = await supabase
       .from('jornadas')
-      .select('*, locations(name, district, action_line), profiles(first_name, last_name)')
+      .select('*, locations(name, district, action_line)')
       .order('date', { ascending: false });
 
-    if (jorData) setJornadas(jorData);
+    const { nombres, error: nombresError } = await fetchNombres((jorData || []).map(j => j.coordinator_id));
+    if (jorData) setJornadas(jorData.map(j => ({ ...j, coordinador: nombres[j.coordinator_id] || null })));
 
     // Si alguna consulta falló, se avisa: los desplegables vacíos y la lista vacía
     // parecerían "no hay datos" cuando en realidad fue un error de red o de permisos.
-    const failure = locError || coordError || jorError;
+    const failure = locError || coordError || jorError || nombresError;
     if (failure) setLoadError(failure.message);
     setFetching(false);
   };
@@ -244,7 +249,7 @@ export default function Jornadas() {
                     </span>
                     <span className="bg-pq-cream/50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-pq-cream-dark/50">
                       <UserSquare2 size={16} className="text-pq-teal-dark"/> 
-                      {jor.profiles ? `${jor.profiles.first_name} ${jor.profiles.last_name}` : 'Sin asignar'}
+                      {jor.coordinador ? `${jor.coordinador.first_name} ${jor.coordinador.last_name}` : 'Sin asignar'}
                     </span>
                   </div>
 
