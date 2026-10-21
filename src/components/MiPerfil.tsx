@@ -111,8 +111,10 @@ export default function MiPerfil({ userId, onSaved }: MiPerfilProps) {
   if (loadError) return <LoadError message={loadError} onRetry={fetchPerfil} />;
   if (!datos) return <p className="text-pq-teal-dark font-bold animate-pulse p-10 text-center">Cargando tu perfil...</p>;
 
-  // El equipo interno tiene estos datos obligatorios (los pide el modal de perfil
-  // progresivo); para un voluntario externo son opcionales.
+  // El equipo interno tiene obligatorios los datos que pide el modal de perfil
+  // progresivo; para un voluntario externo son opcionales. Celular y fecha de
+  // nacimiento son opcionales para todos: hay internos sin ellos (el modal no los
+  // pide) y no deben quedar sin poder guardar otros cambios por eso.
   const esInterno = datos.role === 'ADMIN' || datos.role === 'COORDINADOR';
   const { min, max } = birthDateLimits();
   const inputClass = "w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink";
@@ -160,11 +162,11 @@ export default function MiPerfil({ userId, onSaved }: MiPerfilProps) {
             </div>
             <div>
               <label className={labelClass}>Celular</label>
-              <input type="tel" name="phone" required maxLength={9} inputMode="numeric" pattern={PATTERNS.celular} title={TITLES.celular} value={form.phone} onChange={handleChange} className={inputClass} />
+              <input type="tel" name="phone" maxLength={9} inputMode="numeric" pattern={PATTERNS.celular} title={TITLES.celular} value={form.phone} onChange={handleChange} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Fecha de nacimiento</label>
-              <input type="date" name="birth_date" required min={min} max={max} value={form.birth_date} onChange={handleChange} className={inputClass} />
+              <input type="date" name="birth_date" min={min} max={max} value={form.birth_date} onChange={handleChange} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>DNI</label>
