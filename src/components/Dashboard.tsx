@@ -274,7 +274,7 @@ export default function Dashboard() {
           
           {activeTab === 'locations' && (
             <div className="max-w-6xl mx-auto">
-              <Locations />
+              <Locations archivaLugares={p.archivaLugares} />
             </div>
           )}
 

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { MapPin, Phone, User, Map, Info, Activity, ChevronDown, ChevronUp, Pencil, Home } from 'lucide-react';
+import { MapPin, Phone, User, Map, Info, Activity, ChevronDown, ChevronUp, Pencil, Home, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DISTRITOS_LIMA, DISTRITOS_CALLAO, ACTION_LINES, getActionLineColor } from '../lib/catalogs';
 import { PATTERNS, TITLES } from '../lib/validations';
+import { esBorradoBloqueado } from '../lib/dbErrors';
+import ConfirmDialog from './ConfirmDialog';
 
 type Location = {
   id: string;
@@ -32,8 +34,17 @@ const emptyForm = {
   status: 'ACTIVO'
 };
 
-export default function Locations() {
+type Accion = { tipo: 'archivar' | 'restaurar' | 'borrar'; loc: Location };
+
+// `archivaLugares`: puede archivar, restaurar y borrar (ADMIN de Gerencia General,
+// TI o Proyectos). La base aplica la misma regla; esto solo decide qué botones ver.
+export default function Locations({ archivaLugares = false }: { archivaLugares?: boolean }) {
   const [locations, setLocations] = useState<Location[]>([]);
+  // Cuántas jornadas tiene cada lugar: un lugar con jornadas no se borra, se archiva.
+  const [jornadasPorLugar, setJornadasPorLugar] = useState<Record<string, number>>({});
+  const [verArchivados, setVerArchivados] = useState(false);
+  const [accion, setAccion] = useState<Accion | null>(null);
+  const [procesando, setProcesando] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
@@ -61,7 +72,37 @@ export default function Locations() {
     if (!error && data) {
       setLocations(data);
     }
+
+    const { data: jorData } = await supabase.from('jornadas').select('location_id');
+    const conteo: Record<string, number> = {};
+    (jorData || []).forEach(j => { if (j.location_id) conteo[j.location_id] = (conteo[j.location_id] || 0) + 1; });
+    setJornadasPorLugar(conteo);
+
     setFetching(false);
+  };
+
+  const confirmarAccion = async () => {
+    if (!accion) return;
+    const { tipo, loc } = accion;
+    setProcesando(true);
+
+    const { data, error } = tipo === 'borrar'
+      ? await supabase.from('locations').delete().eq('id', loc.id).select('id')
+      : await supabase.from('locations').update({ status: tipo === 'archivar' ? 'ARCHIVADO' : 'ACTIVO' }).eq('id', loc.id).select('id');
+
+    if (error) {
+      toast.error(esBorradoBloqueado(error)
+        ? `"${loc.name}" tiene jornadas registradas: archívalo en vez de borrarlo.`
+        : 'No se pudo completar la acción: ' + error.message);
+    } else if (!data || data.length === 0) {
+      // RLS: PostgREST responde OK con 0 filas cuando no hay permiso.
+      toast.error('No tienes permiso para esta acción.');
+    } else {
+      toast.success(tipo === 'borrar' ? 'Lugar borrado.' : tipo === 'archivar' ? 'Lugar archivado.' : 'Lugar restaurado.');
+      fetchLocations();
+    }
+    setProcesando(false);
+    setAccion(null);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -130,6 +171,8 @@ export default function Locations() {
     }
     setLoading(false);
   };
+
+  const visibles = locations.filter(l => (l.status === 'ARCHIVADO') === verArchivados);
 
   const inputClass = "w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink";
   const labelClass = "block text-sm font-bold text-pq-teal-dark mb-2";
@@ -222,30 +265,71 @@ export default function Locations() {
 
       {/* DIRECTORIO DE LUGARES */}
       <div className="bg-white p-6 md:p-8 rounded-3xl border border-pq-cream-dark shadow-sm">
-        <h2 className="text-2xl font-black text-pq-teal-deep mb-6 flex items-center gap-2">
-          Directorio de Lugares Aliados <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <h2 className="text-2xl font-black text-pq-teal-deep flex items-center gap-2">
+            Directorio de Lugares Aliados <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
+          </h2>
+          <div className="flex bg-pq-cream/50 p-1 rounded-xl border border-pq-cream-dark text-sm font-bold">
+            {[false, true].map(archivados => (
+              <button
+                key={String(archivados)}
+                type="button"
+                onClick={() => setVerArchivados(archivados)}
+                className={`px-4 py-1.5 rounded-lg transition-colors ${verArchivados === archivados ? 'bg-white text-pq-teal-deep shadow-sm' : 'text-pq-ink/60 hover:text-pq-teal-dark'}`}
+              >
+                {archivados ? 'Archivados' : 'Activos'} ({locations.filter(l => (l.status === 'ARCHIVADO') === archivados).length})
+              </button>
+            ))}
+          </div>
+        </div>
 
         {fetching ? (
           <div className="flex justify-center p-10"><p className="text-pq-teal-dark font-bold animate-pulse">Cargando directorio...</p></div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-            {locations.map((loc) => {
+            {visibles.map((loc) => {
               const isExpanded = expandedId === loc.id;
+              const archivado = loc.status === 'ARCHIVADO';
+              const nJornadas = jornadasPorLugar[loc.id] || 0;
 
               return (
-                <div key={loc.id} className={`border-2 rounded-2xl p-5 bg-white transition-all flex flex-col group ${
+                <div key={loc.id} className={`border-2 rounded-2xl p-5 transition-all flex flex-col group ${archivado ? 'bg-pq-cream/30' : 'bg-white'} ${
                   isExpanded ? 'border-pq-teal shadow-lg' : 'border-pq-cream-dark hover:border-pq-teal/40 hover:shadow-lg'
                 }`}>
 
                   <div className="flex justify-between items-start mb-3">
-                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border flex items-center gap-1 ${getActionLineColor(loc.action_line)}`}>
-                      <Activity size={12}/> {loc.action_line}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border flex items-center gap-1 ${getActionLineColor(loc.action_line)}`}>
+                        <Activity size={12}/> {loc.action_line}
+                      </span>
+                      {archivado && (
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border border-pq-ink/20 bg-pq-ink/5 text-pq-ink/60">Archivado</span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <button type="button" onClick={() => openEdit(loc)} title="Editar lugar" className="text-pq-teal-dark hover:text-pq-teal transition-colors">
                         <Pencil size={16} />
                       </button>
+                      {archivaLugares && (archivado ? (
+                        <button type="button" onClick={() => setAccion({ tipo: 'restaurar', loc })} title="Restaurar lugar" className="text-pq-teal-dark hover:text-pq-teal transition-colors">
+                          <ArchiveRestore size={16} />
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => setAccion({ tipo: 'archivar', loc })} title="Archivar lugar" className="text-pq-teal-dark hover:text-pq-teal transition-colors">
+                          <Archive size={16} />
+                        </button>
+                      ))}
+                      {archivaLugares && (
+                        <button
+                          type="button"
+                          onClick={() => setAccion({ tipo: 'borrar', loc })}
+                          disabled={nJornadas > 0}
+                          title={nJornadas > 0 ? `Tiene ${nJornadas} jornada(s): archívalo en vez de borrarlo` : 'Borrar lugar'}
+                          className="text-red-600 hover:text-red-700 transition-colors disabled:text-pq-ink/25 disabled:cursor-not-allowed"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                       {loc.maps_link && (
                         <a href={loc.maps_link} target="_blank" rel="noreferrer" className="text-pq-teal-dark hover:text-pq-teal transition-colors" title="Ver en Maps">
                           <Map size={18} />
@@ -311,14 +395,41 @@ export default function Locations() {
               );
             })}
 
-            {locations.length === 0 && (
+            {visibles.length === 0 && (
               <div className="col-span-full text-center p-10 bg-pq-cream/50 rounded-2xl border-2 border-dashed border-pq-cream-dark">
-                <p className="text-pq-teal-dark font-medium">No tienes lugares aliados registrados aún.</p>
+                <p className="text-pq-teal-dark font-medium">
+                  {verArchivados ? 'No hay lugares archivados.' : 'No tienes lugares aliados registrados aún.'}
+                </p>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* CONFIRMAR ARCHIVAR / RESTAURAR / BORRAR */}
+      {accion && (
+        <ConfirmDialog
+          title={accion.tipo === 'borrar' ? 'Borrar lugar' : accion.tipo === 'archivar' ? 'Archivar lugar' : 'Restaurar lugar'}
+          confirmLabel={accion.tipo === 'borrar' ? 'Borrar' : accion.tipo === 'archivar' ? 'Archivar' : 'Restaurar'}
+          danger={accion.tipo === 'borrar'}
+          busy={procesando}
+          onConfirm={confirmarAccion}
+          onCancel={() => setAccion(null)}
+        >
+          {accion.tipo === 'borrar' && (
+            <p>¿Borrar definitivamente <strong>{accion.loc.name}</strong>? No se puede deshacer.</p>
+          )}
+          {accion.tipo === 'archivar' && (
+            <>
+              <p>¿Archivar <strong>{accion.loc.name}</strong>?</p>
+              <p>Dejará de aparecer al programar jornadas nuevas. Sus jornadas e historial se conservan y puedes restaurarlo cuando quieras.</p>
+            </>
+          )}
+          {accion.tipo === 'restaurar' && (
+            <p>¿Restaurar <strong>{accion.loc.name}</strong>? Volverá a aparecer al programar jornadas.</p>
+          )}
+        </ConfirmDialog>
+      )}
 
       {/* MODAL DE EDICIÓN DE LUGAR */}
       {editingId && (

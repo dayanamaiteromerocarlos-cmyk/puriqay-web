@@ -39,6 +39,9 @@ export function permisos({ role, area, is_active }: Perfil) {
     veHistorialCambios: cargo(ADMIN, [AREAS.GERENCIA, AREAS.TI, AREAS.GESTION_HUMANA]),
     veVoluntarios: veDatosPersonales || editaRolArea,
     gestionaJornadas,
+    // Archivar, restaurar y borrar lugares (en la base: borra_lugares()). Editar
+    // sus demás datos sigue siendo gestionaJornadas.
+    archivaLugares: esSuperadmin || cargo(ADMIN, [AREAS.PROYECTOS]),
     supervisaMarketing,
     veMarketing: supervisaMarketing || cargo(INTERNO, [AREAS.COMUNICACION]),
   };
