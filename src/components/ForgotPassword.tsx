@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { traducirErrorAuth } from '../lib/authErrors';
+import FondoParticulas from './FondoParticulas';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -28,8 +29,9 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-pq-cream flex justify-center items-center p-4">
-      <div className="w-full max-w-md bg-white p-8 md:p-10 rounded-3xl shadow-xl border border-pq-cream-dark">
+    <div className="min-h-screen relative isolate bg-white flex justify-center items-center p-4">
+      <FondoParticulas />
+      <div className="w-full max-w-md bg-white/30 backdrop-blur-[2px] p-8 md:p-10 rounded-3xl shadow-xl border border-white/70">
 
         <div className="text-center mb-10">
           <h2 className="text-4xl font-black text-pq-teal-deep flex items-center justify-center gap-1.5 tracking-tight">

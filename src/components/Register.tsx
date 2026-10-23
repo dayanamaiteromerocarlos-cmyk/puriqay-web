@@ -5,6 +5,7 @@ import { MailCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PATTERNS, TITLES, birthDateLimits } from '../lib/validations';
 import { traducirErrorAuth } from '../lib/authErrors';
+import FondoParticulas from './FondoParticulas';
 
 // Fase 1 del registro (fricción cero): solo lo mínimo para crear la cuenta.
 // El resto de los datos del voluntario (DNI, contacto de emergencia, centro de
@@ -79,8 +80,9 @@ export default function Register() {
   // Pantalla posterior al registro cuando Supabase exige verificar el correo.
   if (emailSent) {
     return (
-      <div className="min-h-screen bg-pq-cream py-10 px-4 flex justify-center items-center">
-        <div className="w-full max-w-md bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-pq-cream-dark text-center">
+      <div className="min-h-screen relative isolate bg-white py-10 px-4 flex justify-center items-center">
+        <FondoParticulas />
+        <div className="w-full max-w-md bg-white/30 backdrop-blur-[2px] p-8 md:p-12 rounded-3xl shadow-xl border border-white/70 text-center">
           <div className="w-16 h-16 rounded-full bg-pq-teal/10 border-2 border-pq-teal/30 flex items-center justify-center mx-auto mb-6">
             <MailCheck size={30} className="text-pq-teal" />
           </div>
@@ -106,8 +108,9 @@ export default function Register() {
     );
   }
   return (
-    <div className="min-h-screen bg-pq-cream py-10 px-4 flex justify-center items-center">
-      <div className="w-full max-w-lg bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-pq-cream-dark">
+    <div className="min-h-screen relative isolate bg-white py-10 px-4 flex justify-center items-center">
+      <FondoParticulas />
+      <div className="w-full max-w-lg bg-white/30 backdrop-blur-[2px] p-8 md:p-12 rounded-3xl shadow-xl border border-white/70">
 
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-black text-pq-teal-deep flex items-center justify-center gap-2">
