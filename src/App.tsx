@@ -14,24 +14,22 @@ function App() {
         position="top-center"
         toastOptions={{
           style: {
-            background: '#f1e6d5', /* pq-cream */
-            color: '#21514d',      /* pq-teal-deep */
-            border: '2px solid #eae1d3', /* pq-cream-dark */
-            fontWeight: 'bold',
-            borderRadius: '1rem',
-            boxShadow: '0 10px 15px -3px rgba(17, 143, 140, 0.2)',
+            background: '#e3f4f2', /* pq-teal-50 */
+            color: '#0b4d4b',      /* pq-teal-deep */
+            fontWeight: 600,
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(31, 43, 42, 0.08)', /* shadow-pq-card */
           },
           success: {
             iconTheme: {
-              primary: '#118f8c', /* pq-teal */
+              primary: '#0e7a77', /* pq-teal */
               secondary: '#ffffff',
             },
           },
           error: {
             style: {
-              background: '#fef2f2',
-              color: '#991b1b',
-              border: '2px solid #fecaca',
+              background: '#fdecea', /* pq-error-50 */
+              color: '#b42318',      /* pq-error */
             },
           }
         }} 

@@ -68,17 +68,17 @@ export default function HistorialCambios() {
   };
 
   return (
-    <div className="bg-white p-6 md:p-8 rounded-3xl border border-pq-cream-dark shadow-sm">
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-left">
-        <h2 className="text-xl font-black text-pq-teal-deep flex items-center gap-2">
-          <History size={22} /> Historial de cambios <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
+    <section className="bg-white p-5 md:p-7 rounded-[20px] shadow-pq-card">
+      <button onClick={() => setOpen(o => !o)} aria-expanded={open} className="w-full min-h-11 flex items-center justify-between text-left">
+        <h2 className="text-xl font-extrabold text-pq-teal-deep flex items-center gap-2">
+          <History size={22} className="text-pq-teal" aria-hidden="true" /> Historial de cambios <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
         </h2>
         {open ? <ChevronUp className="text-pq-teal-dark" /> : <ChevronDown className="text-pq-teal-dark" />}
       </button>
 
       {open && (
         <div className="mt-6">
-          <p className="text-sm text-pq-ink/70 font-medium mb-4">
+          <p className="text-sm text-pq-ink-muted mb-4">
             Cambios de rol, área y estado (activo / inactivo) hechos desde la app. Se muestran los {LIMITE} más recientes.
           </p>
           {loading ? (
@@ -86,17 +86,17 @@ export default function HistorialCambios() {
           ) : loadError ? (
             <LoadError message={loadError} onRetry={fetchCambios} />
           ) : cambios.length === 0 ? (
-            <p className="text-center p-6 bg-pq-cream/50 rounded-2xl border-2 border-dashed border-pq-cream-dark text-pq-teal-dark font-medium">
+            <p className="text-center p-6 bg-pq-cream rounded-2xl border border-pq-cream-dark text-pq-ink-muted">
               Todavía no hay cambios registrados.
             </p>
           ) : (
-            <ul className="divide-y-2 divide-pq-cream-dark">
+            <ul className="divide-y divide-pq-cream-dark">
               {cambios.map(c => (
                 <li key={c.id} className="py-3 flex flex-col md:flex-row md:items-center gap-1 md:gap-4">
-                  <span className="text-xs font-bold text-pq-ink/50 md:w-40 shrink-0">
+                  <span className="text-xs font-semibold text-pq-ink-muted md:w-40 shrink-0">
                     {new Date(c.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima', dateStyle: 'short', timeStyle: 'short' })}
                   </span>
-                  <span className="text-sm text-pq-ink/80 font-medium">
+                  <span className="text-sm text-pq-ink">
                     <strong className="text-pq-teal-deep">{nombreDe(nombres, c.editor_id)}</strong> {describir(c).verbo}{' '}
                     <strong className="text-pq-teal-deep">{nombreDe(nombres, c.persona_id)}</strong> {describir(c).detalle}
                   </span>
@@ -106,6 +106,6 @@ export default function HistorialCambios() {
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }

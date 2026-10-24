@@ -73,7 +73,7 @@ export default function Register() {
   };
 
   const { min: minBirthDate, max: maxBirthDate } = birthDateLimits();
-  const inputClass = "w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink";
+  const inputClass = "w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink";
   const labelClass = "block text-sm font-bold text-pq-teal-dark mb-2";
 
 
@@ -82,7 +82,7 @@ export default function Register() {
     return (
       <div className="min-h-screen relative isolate bg-white py-10 px-4 flex justify-center items-center">
         <FondoParticulas />
-        <div className="w-full max-w-md bg-white/30 backdrop-blur-[2px] p-8 md:p-12 rounded-3xl shadow-xl border border-white/70 text-center">
+        <div className="w-full max-w-md bg-white/30 backdrop-blur-[2px] p-8 md:p-12 rounded-3xl shadow-xl border border-white/70 border-t-[6px] border-t-pq-brand text-center">
           <div className="w-16 h-16 rounded-full bg-pq-teal/10 border-2 border-pq-teal/30 flex items-center justify-center mx-auto mb-6">
             <MailCheck size={30} className="text-pq-teal" />
           </div>
@@ -110,7 +110,7 @@ export default function Register() {
   return (
     <div className="min-h-screen relative isolate bg-white py-10 px-4 flex justify-center items-center">
       <FondoParticulas />
-      <div className="w-full max-w-lg bg-white/30 backdrop-blur-[2px] p-8 md:p-12 rounded-3xl shadow-xl border border-white/70">
+      <div className="w-full max-w-lg bg-white/30 backdrop-blur-[2px] p-8 md:p-12 rounded-3xl shadow-xl border border-white/70 border-t-[6px] border-t-pq-brand">
 
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-black text-pq-teal-deep flex items-center justify-center gap-2">
@@ -140,7 +140,7 @@ export default function Register() {
             <div><label className={labelClass}>Celular <span className="text-xs font-medium text-pq-ink/50">(9 números)</span></label><input type="tel" name="phone" required maxLength={9} inputMode="numeric" pattern={PATTERNS.celular} title={TITLES.celular} value={formData.phone} onChange={handleChange} className={inputClass} /></div>
           </div>
 
-          {errorMsg && <div className="bg-red-50 text-red-600 text-sm text-center font-bold p-3 rounded-xl border border-red-100">{errorMsg}</div>}
+          {errorMsg && <div className="bg-pq-error-50 text-pq-error text-sm text-center font-bold p-3 rounded-xl border border-pq-error/20">{errorMsg}</div>}
 
           <div className="pt-4 border-t-2 border-dashed border-pq-cream-dark mt-8">
             <button type="submit" disabled={loading} className="w-full bg-pq-teal hover:bg-pq-teal-dark text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-pq-teal/30 hover:-translate-y-0.5 transition-all duration-200">

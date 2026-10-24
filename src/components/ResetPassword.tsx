@@ -68,12 +68,12 @@ export default function ResetPassword() {
   };
 
   const inputClass =
-    'w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink';
+    'w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink';
 
   return (
     <div className="min-h-screen relative isolate bg-white flex justify-center items-center p-4">
       <FondoParticulas />
-      <div className="w-full max-w-md bg-white/30 backdrop-blur-[2px] p-8 md:p-10 rounded-3xl shadow-xl border border-white/70">
+      <div className="w-full max-w-md bg-white/30 backdrop-blur-[2px] p-8 md:p-10 rounded-3xl shadow-xl border border-white/70 border-t-[6px] border-t-pq-brand">
 
         <div className="text-center mb-10">
           <h2 className="text-4xl font-black text-pq-teal-deep flex items-center justify-center gap-1.5 tracking-tight">
@@ -89,7 +89,7 @@ export default function ResetPassword() {
 
         {status === 'invalid' && (
           <div className="space-y-6">
-            <div className="bg-red-50 text-red-600 text-sm text-center font-bold p-3 rounded-xl border border-red-100">
+            <div className="bg-pq-error-50 text-pq-error text-sm text-center font-bold p-3 rounded-xl border border-pq-error/20">
               El enlace no es válido o ya venció. Solicita uno nuevo.
             </div>
             <p className="text-center text-sm text-pq-ink/70 font-medium">
@@ -129,7 +129,7 @@ export default function ResetPassword() {
             </div>
 
             {errorMsg && (
-              <div className="bg-red-50 text-red-600 text-sm text-center font-bold p-3 rounded-xl border border-red-100">
+              <div className="bg-pq-error-50 text-pq-error text-sm text-center font-bold p-3 rounded-xl border border-pq-error/20">
                 {errorMsg}
               </div>
             )}

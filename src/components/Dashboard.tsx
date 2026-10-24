@@ -11,8 +11,11 @@ import AvailableJornadas from './AvailableJornadas';
 import MarketingBoard from './MarketingBoard';
 import CompleteProfileModal from './CompleteProfileModal';
 import MiPerfil from './MiPerfil';
+import Inicio from './Inicio';
+import MisAsistencias from './MisAsistencias';
+import JornadaDetalle from './JornadaDetalle';
 import { permisos } from '../lib/permisos';
-import { Users, QrCode, LogOut, ChevronLeft, Menu, CalendarDays, CalendarCheck, MapPin, Camera, Megaphone, UserCircle } from 'lucide-react';
+import { Users, QrCode, LogOut, ChevronLeft, Menu, X, House, ClipboardCheck, CalendarDays, CalendarCheck, MapPin, Camera, Megaphone, UserCircle } from 'lucide-react';
 
 // Campos "avanzados" que Register.tsx ya no pide en la fase 1 (fricción cero).
 // Solo se le exigen al equipo interno (COORDINADOR/ADMIN): si a uno de ellos le
@@ -38,14 +41,16 @@ export default function Dashboard() {
   const [missingProfileFields, setMissingProfileFields] = useState<string[]>([]);
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  // En escritorio el menú se puede contraer a solo iconos; en celular es un panel
+  // que se abre desde la derecha con el botón ☰.
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [menuMovil, setMenuMovil] = useState(false);
   const [activeTab, setActiveTab] = useState('');
+  // Jornada abierta en "Detalle de Jornada" (se abre desde Inicio, Próximas Jornadas
+  // o Jornadas; "Volver" regresa a la pestaña de donde vino).
+  const [detalle, setDetalle] = useState<string | null>(null);
 
   useEffect(() => {
-    // Si la pantalla es de celular al cargar, escondemos el menú por defecto
-    if (window.innerWidth < 768) {
-      setIsSidebarOpen(false);
-    }
     checkUserRole();
   }, []);
 
@@ -94,7 +99,7 @@ export default function Dashboard() {
       setIsActive(data.is_active);
       setNombre(nombreCorto(data.first_name, data.last_name));
       setQrToken(data.qr_token);
-      setActiveTab('available_jornadas');
+      setActiveTab('inicio');
 
       // Solo el equipo interno (COORDINADOR/ADMIN) completa los datos avanzados, y
       // se le piden únicamente los campos que tenga vacíos. Un voluntario externo se
@@ -114,29 +119,35 @@ export default function Dashboard() {
     navigate('/');
   };
 
-  const SidebarItem = ({ id, label, icon: Icon }: any) => {
+  const irA = (tab: string) => {
+    setActiveTab(tab);
+    setDetalle(null);
+    setMenuMovil(false);
+  };
+
+  const verDetalle = (jornadaId: string) => setDetalle(jornadaId);
+
+  // `compacto`: menú de escritorio contraído (solo iconos).
+  const SidebarItem = ({ id, label, icon: Icon, compacto }: any) => {
     const isActive = activeTab === id;
     return (
       <button
-        onClick={() => {
-          setActiveTab(id);
-          // Si estamos en celular, cerramos el menú automáticamente al elegir una opción
-          if (window.innerWidth < 768) setIsSidebarOpen(false);
-        }}
-        className={`w-full flex items-center p-3 mb-2 rounded-xl transition-all duration-200 font-medium ${
-          isActive 
-            ? 'bg-pq-teal text-white shadow-md shadow-pq-teal/30' 
-            : 'text-pq-ink/70 hover:bg-pq-cream-dark hover:text-pq-teal-dark'
+        onClick={() => irA(id)}
+        aria-current={isActive ? 'page' : undefined}
+        className={`w-full flex items-center min-h-12 p-3 rounded-xl transition-all duration-200 font-medium ${
+          isActive
+            ? 'bg-pq-teal text-white shadow-md shadow-pq-teal/30'
+            : 'text-pq-ink/70 hover:bg-pq-cream hover:text-pq-teal-deep'
         }`}
-        title={!isSidebarOpen ? label : ''}
+        title={compacto ? label : ''}
       >
         <Icon size={22} className={`min-w-[22px] ${isActive ? 'text-white' : 'text-pq-teal-dark/70'}`} />
-        {isSidebarOpen && <span className="ml-3 truncate">{label}</span>}
+        {!compacto && <span className="ml-3 truncate text-left">{label}</span>}
       </button>
     );
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">Cargando Puriqay...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-pq-ink-muted font-medium">Cargando Puriqay...</div>;
 
   // Sin perfil no hay rol, y sin rol el menú saldría vacío: es mejor decir qué pasó.
   if (profileError) {
@@ -148,7 +159,7 @@ export default function Dashboard() {
             Tu cuenta existe, pero la aplicación no logró leer tus datos de la base.
             Avisa al equipo de Puriqay con este detalle:
           </p>
-          <p className="text-xs font-mono text-red-600 bg-red-50 border border-red-100 rounded-xl p-3 mt-4 break-words">
+          <p className="text-xs font-mono text-pq-error bg-pq-error-50 border border-pq-error/20 rounded-xl p-3 mt-4 break-words">
             {profileError}
           </p>
           <button
@@ -165,6 +176,60 @@ export default function Dashboard() {
   const perfil = { role, area, is_active: isActive };
   const p = permisos(perfil);
 
+  const NOMBRES_TAB: Record<string, string> = {
+    inicio: 'Inicio', jornadas: 'Jornadas', available_jornadas: 'Próximas Jornadas',
+  };
+
+  // Contenido del menú, el mismo en escritorio y en el panel del celular.
+  const contenidoMenu = (compacto: boolean) => (
+    <>
+      {!compacto && (
+        <div className="px-5 pt-5 pb-3">
+          <div className="bg-pq-cream rounded-xl p-3 border border-pq-cream-dark/50">
+            <p className="text-xs font-black text-pq-teal-deep">{role}</p>
+            {area && <p className="text-[10px] text-pq-ink/60 truncate uppercase font-bold mt-0.5">{area}</p>}
+            {isActive === false && (
+              <p className="text-[10px] text-pq-error uppercase font-black mt-1">Cuenta inactiva</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <nav className="flex-1 px-4 py-2 overflow-y-auto flex flex-col gap-2">
+        <SidebarItem id="inicio" label="Inicio" icon={House} compacto={compacto} />
+        {p.gestionaJornadas && <SidebarItem id="locations" label="Lugares" icon={MapPin} compacto={compacto} />}
+        {p.gestionaJornadas && <SidebarItem id="jornadas" label="Jornadas" icon={CalendarDays} compacto={compacto} />}
+        {p.veVoluntarios && <SidebarItem id="volunteers" label="Voluntarios" icon={Users} compacto={compacto} />}
+        {p.veMarketing && <SidebarItem id="marketing" label="Área de Marketing" icon={Megaphone} compacto={compacto} />}
+        <SidebarItem id="available_jornadas" label="Próximas Jornadas" icon={CalendarCheck} compacto={compacto} />
+        <SidebarItem id="mis_asistencias" label="Mis asistencias" icon={ClipboardCheck} compacto={compacto} />
+        {p.esInterno && <SidebarItem id="scanner" label="Control de Asistencia" icon={Camera} compacto={compacto} />}
+        <SidebarItem id="qr" label="Mi Código QR" icon={QrCode} compacto={compacto} />
+      </nav>
+
+      <div className="p-4 border-t border-pq-cream-dark shrink-0 flex flex-col gap-2">
+        <button
+          onClick={() => irA('perfil')}
+          className={`w-full flex items-center min-h-12 p-3 rounded-xl transition-all font-bold ${
+            activeTab === 'perfil' ? 'bg-pq-teal text-white shadow-md shadow-pq-teal/30' : 'text-pq-teal-deep hover:bg-pq-cream'
+          }`}
+          title={compacto ? `${nombre || 'Mi perfil'} · Ver mi perfil` : 'Ver mi perfil'}
+        >
+          <UserCircle size={22} className="min-w-[22px]" />
+          {!compacto && <span className="ml-3 truncate">{nombre || 'Mi perfil'}</span>}
+        </button>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center min-h-12 p-3 rounded-xl text-pq-error hover:bg-pq-error-50 transition-all font-medium"
+          title={compacto ? 'Cerrar Sesión' : ''}
+        >
+          <LogOut size={22} className="min-w-[22px]" />
+          {!compacto && <span className="ml-3 truncate">Cerrar Sesión</span>}
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex h-screen bg-pq-cream overflow-hidden relative">
 
@@ -173,148 +238,123 @@ export default function Dashboard() {
         <CompleteProfileModal userId={userId} missingFields={missingProfileFields} onCompleted={() => setMissingProfileFields([])} />
       )}
 
-      {/* FONDO OSCURO PARA CELULARES (Aparece cuando el menú está abierto) */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-pq-ink/20 backdrop-blur-sm z-40 md:hidden transition-opacity"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* BARRA LATERAL (SIDEBAR) */}
-      <div className={`fixed md:relative z-50 h-full bg-white border-r border-pq-cream-dark transition-all duration-300 flex flex-col shadow-2xl md:shadow-none ${
-        isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-20'
+      {/* MENÚ LATERAL DE ESCRITORIO */}
+      <aside className={`hidden md:flex h-full bg-white border-r border-pq-cream-dark transition-all duration-300 flex-col shrink-0 ${
+        isSidebarOpen ? 'w-64' : 'w-20'
       }`}>
-        
-        <div className="h-20 flex items-center justify-between px-5 border-b border-pq-cream-dark shrink-0">
-          {isSidebarOpen && (
-            <div className="flex flex-col">
-              <h1 className="font-black text-2xl text-pq-teal-deep tracking-tight flex items-center gap-1">
-                Puriqay
-                <span className="w-2 h-2 rounded-full bg-pq-marku"></span>
-              </h1>
-              <span className="text-[10px] uppercase font-bold text-pq-teal-dark tracking-widest">Voluntariado</span>
-            </div>
-          )}
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-            className="p-2 rounded-xl hover:bg-pq-cream text-pq-teal-deep transition-colors ml-auto md:block"
+        <div className={`h-20 flex items-center border-b border-pq-cream-dark shrink-0 ${isSidebarOpen ? 'justify-between px-5' : 'justify-center'}`}>
+          {isSidebarOpen && <img src="/img/logo-puriqay.png" alt="Puriqay" className="w-12 h-12 rounded-full object-cover" />}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            aria-label={isSidebarOpen ? 'Contraer menú' : 'Expandir menú'}
+            className="p-2 rounded-xl hover:bg-pq-cream text-pq-teal-deep transition-colors"
           >
             {isSidebarOpen ? <ChevronLeft size={24} /> : <Menu size={24} />}
           </button>
         </div>
+        {contenidoMenu(!isSidebarOpen)}
+      </aside>
 
-        {isSidebarOpen && (
-          <div className="px-5 pt-5 pb-3">
-            <div className="bg-pq-cream rounded-xl p-3 border border-pq-cream-dark/50">
-              <p className="text-xs font-black text-pq-teal-deep">{role}</p>
-              <p className="text-[10px] text-pq-ink/60 truncate uppercase font-bold mt-0.5">{area}</p>
-              {isActive === false && (
-                <p className="text-[10px] text-red-600 uppercase font-black mt-1">Cuenta inactiva</p>
-              )}
+      {/* MENÚ DE CELULAR: panel desde la derecha */}
+      {menuMovil && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-pq-ink/45" onClick={() => setMenuMovil(false)} aria-hidden="true" />
+          <aside role="dialog" aria-modal="true" aria-label="Menú" className="absolute top-0 right-0 bottom-0 w-[300px] max-w-[85vw] bg-white flex flex-col shadow-[-8px_0_24px_rgba(31,43,42,0.16)]">
+            <div className="h-[72px] flex items-center justify-between pl-5 pr-4 border-b border-pq-cream-dark shrink-0">
+              <img src="/img/logo-puriqay.png" alt="Puriqay" className="w-11 h-11 rounded-full object-cover" />
+              <button onClick={() => setMenuMovil(false)} aria-label="Cerrar menú" className="w-11 h-11 rounded-xl bg-pq-cream text-pq-teal-deep flex items-center justify-center">
+                <X size={24} />
+              </button>
             </div>
-          </div>
-        )}
-
-        <nav className="flex-1 px-4 py-2 overflow-y-auto">
-          {p.gestionaJornadas && <SidebarItem id="locations" label="Lugares" icon={MapPin} />}
-          {p.gestionaJornadas && <SidebarItem id="jornadas" label="Jornadas" icon={CalendarDays} />}
-          {p.veVoluntarios && <SidebarItem id="volunteers" label="Voluntarios" icon={Users} />}
-          {p.veMarketing && <SidebarItem id="marketing" label="Área de Marketing" icon={Megaphone} />}
-
-          <SidebarItem id="available_jornadas" label="Próximas Jornadas" icon={CalendarCheck} />
-          {p.esInterno && <SidebarItem id="scanner" label="Control de Asistencia" icon={Camera} />}
-
-          <SidebarItem id="qr" label="Mi Código QR" icon={QrCode} />
-        </nav>
-
-        <div className="p-4 border-t border-pq-cream-dark shrink-0">
-          <button
-            onClick={() => {
-              setActiveTab('perfil');
-              if (window.innerWidth < 768) setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-3 mb-2 rounded-xl transition-all font-bold ${
-              activeTab === 'perfil' ? 'bg-pq-teal text-white shadow-md shadow-pq-teal/30' : 'text-pq-teal-deep hover:bg-pq-cream-dark'
-            }`}
-            title={!isSidebarOpen ? `${nombre || 'Mi perfil'} · Ver mi perfil` : 'Ver mi perfil'}
-          >
-            <UserCircle size={22} className="min-w-[22px]" />
-            {isSidebarOpen && <span className="ml-3 truncate">{nombre || 'Mi perfil'}</span>}
-          </button>
-          <button 
-            onClick={handleLogout} 
-            className="w-full flex items-center p-3 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 transition-all font-medium"
-            title={!isSidebarOpen ? 'Cerrar Sesión' : ''}
-          >
-            <LogOut size={22} className="min-w-[22px]" />
-            {isSidebarOpen && <span className="ml-3 truncate">Cerrar Sesión</span>}
-          </button>
+            {contenidoMenu(false)}
+          </aside>
         </div>
-      </div>
+      )}
 
       {/* CONTENIDO PRINCIPAL */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden w-full">
-        
-        {/* BARRA SUPERIOR (SOLO VISIBLE EN CELULARES) */}
-        <div className="md:hidden flex items-center justify-between bg-white px-5 py-4 border-b border-pq-cream-dark shrink-0 shadow-sm z-10">
-          <h1 className="font-black text-2xl text-pq-teal-deep tracking-tight flex items-center gap-1">
-            Puriqay <span className="w-2 h-2 rounded-full bg-pq-marku"></span>
-          </h1>
-          <button 
-            onClick={() => setIsSidebarOpen(true)} 
-            className="p-2 rounded-xl bg-pq-cream text-pq-teal-deep hover:bg-pq-cream-dark transition-colors"
+
+        {/* CABECERA (SOLO EN CELULARES) */}
+        <header className="md:hidden h-[72px] flex items-center justify-between bg-white px-4 border-b border-pq-cream-dark shrink-0 shadow-sm z-10">
+          <img src="/img/logo-puriqay.png" alt="Puriqay" className="w-11 h-11 rounded-full object-cover" />
+          <button
+            onClick={() => setMenuMovil(true)}
+            aria-label="Abrir menú"
+            className="w-11 h-11 rounded-xl bg-pq-cream text-pq-teal-deep flex items-center justify-center hover:bg-pq-cream-dark transition-colors"
           >
             <Menu size={24} />
           </button>
-        </div>
+        </header>
 
         {/* ÁREA DE SCROLL DE LOS MÓDULOS */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          
-          {activeTab === 'locations' && (
+        <div className="flex-1 overflow-y-auto px-4 py-6 md:p-10">
+
+          {detalle && (
+            <div className="max-w-[1000px] mx-auto">
+              <JornadaDetalle
+                jornadaId={detalle}
+                esInterno={p.esInterno}
+                volverA={NOMBRES_TAB[activeTab] ?? 'Próximas Jornadas'}
+                onVolver={() => setDetalle(null)}
+              />
+            </div>
+          )}
+
+          {!detalle && activeTab === 'inicio' && userId && (
+            <div className="max-w-[1000px] mx-auto">
+              <Inicio userId={userId} nombre={nombre} onVerDetalle={verDetalle} onVerTodas={() => irA('available_jornadas')} />
+            </div>
+          )}
+
+          {!detalle && activeTab === 'mis_asistencias' && userId && (
+            <div className="max-w-[800px] mx-auto">
+              <MisAsistencias userId={userId} />
+            </div>
+          )}
+
+          {!detalle && activeTab === 'locations' && (
             <div className="max-w-6xl mx-auto">
               <Locations archivaLugares={p.archivaLugares} />
             </div>
           )}
 
-          {activeTab === 'jornadas' && (
-            <div className="max-w-6xl mx-auto">
-              <Jornadas />
+          {!detalle && activeTab === 'jornadas' && (
+            <div className="max-w-[1000px] mx-auto">
+              <Jornadas onVerDetalle={verDetalle} />
             </div>
           )}
 
-          {activeTab === 'volunteers' && (
+          {!detalle && activeTab === 'volunteers' && (
             <div className="max-w-6xl mx-auto">
               <VolunteerList userId={userId} perfil={perfil} />
             </div>
           )}
 
-          {activeTab === 'scanner' && (
+          {!detalle && activeTab === 'scanner' && (
             <div className="max-w-6xl mx-auto">
               <AttendanceScanner />
             </div>
           )}
 
-          {activeTab === 'available_jornadas' && (
-            <div className="max-w-6xl mx-auto">
-              <AvailableJornadas />
+          {!detalle && activeTab === 'available_jornadas' && (
+            <div className="max-w-[1000px] mx-auto">
+              <AvailableJornadas onVerDetalle={verDetalle} />
             </div>
           )}
 
-          {activeTab === 'marketing' && (
+          {!detalle && activeTab === 'marketing' && (
             <div className="max-w-6xl mx-auto">
               <MarketingBoard />
             </div>
           )}
 
-          {activeTab === 'perfil' && userId && (
+          {!detalle && activeTab === 'perfil' && userId && (
             <div className="max-w-4xl mx-auto">
               <MiPerfil userId={userId} onSaved={(first, last) => setNombre(nombreCorto(first, last))} />
             </div>
           )}
 
-          {activeTab === 'qr' && (
+          {!detalle && activeTab === 'qr' && (
             <div className="max-w-sm mx-auto bg-white p-8 rounded-[2.5rem] shadow-xl border-2 border-pq-cream-dark text-center mt-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-4 bg-pq-teal"></div>
               <h2 className="text-3xl font-black text-pq-teal-deep mt-4 flex items-center justify-center gap-2">
@@ -325,7 +365,7 @@ export default function Dashboard() {
               </p>
               <div className="bg-white p-4 rounded-3xl border-4 border-pq-cream-dark shadow-inner inline-block relative group transition-transform hover:scale-105">
                 {qrToken ? (
-                  <QRCode value={qrToken} size={200} level="H" fgColor="#21514d" bgColor="#ffffff"/>
+                  <QRCode value={qrToken} size={200} level="H" fgColor="#0b4d4b" bgColor="#ffffff"/>
                 ) : (
                   <div className="w-[200px] h-[200px] flex items-center justify-center bg-pq-cream/50 rounded-2xl">
                     <p className="text-pq-teal-dark font-bold animate-pulse">Generando...</p>

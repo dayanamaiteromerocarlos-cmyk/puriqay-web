@@ -117,7 +117,7 @@ export default function MiPerfil({ userId, onSaved }: MiPerfilProps) {
   // pide) y no deben quedar sin poder guardar otros cambios por eso.
   const esInterno = datos.role === 'ADMIN' || datos.role === 'COORDINADOR';
   const { min, max } = birthDateLimits();
-  const inputClass = "w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink";
+  const inputClass = "w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink";
   const labelClass = "block text-sm font-bold text-pq-teal-dark mb-2";
 
   return (
@@ -141,7 +141,7 @@ export default function MiPerfil({ userId, onSaved }: MiPerfilProps) {
           </div>
           <div className="bg-pq-cream/40 p-4 rounded-xl border border-pq-cream-dark">
             <p className="text-xs font-bold text-pq-teal-dark uppercase tracking-wider">Estado</p>
-            <p className={`font-black ${datos.is_active ? 'text-green-700' : 'text-red-600'}`}>
+            <p className={`font-black ${datos.is_active ? 'text-pq-teal-deep' : 'text-pq-error'}`}>
               {datos.is_active ? 'Activo' : 'Inactivo'}
             </p>
           </div>

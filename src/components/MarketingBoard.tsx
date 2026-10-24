@@ -488,12 +488,12 @@ export default function MarketingBoard() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-sm font-bold text-pq-teal-dark mb-2">Título de la Campaña <span className="text-red-500">*</span></label>
-                    <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-medium text-pq-ink transition-all" placeholder="Ej: Fiestas Patrias" />
+                    <label className="block text-sm font-bold text-pq-teal-dark mb-2">Título de la Campaña <span className="text-pq-error">*</span></label>
+                    <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-medium text-pq-ink transition-all" placeholder="Ej: Fiestas Patrias" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-pq-teal-dark mb-2">Tipo de Contenido <span className="text-red-500">*</span></label>
-                    <select required value={contentType} onChange={(e) => setContentType(e.target.value)} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-medium text-pq-ink transition-all">
+                    <label className="block text-sm font-bold text-pq-teal-dark mb-2">Tipo de Contenido <span className="text-pq-error">*</span></label>
+                    <select required value={contentType} onChange={(e) => setContentType(e.target.value)} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-medium text-pq-ink transition-all">
                       <option value="Post">Post (Imagen estática)</option>
                       <option value="Carrusel">Carrusel</option>
                       <option value="Reel">Reel / Video corto</option>
@@ -501,8 +501,8 @@ export default function MarketingBoard() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-pq-teal-dark mb-2">Asignar a <span className="text-red-500">*</span></label>
-                    <select required value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-medium text-pq-ink transition-all">
+                    <label className="block text-sm font-bold text-pq-teal-dark mb-2">Asignar a <span className="text-pq-error">*</span></label>
+                    <select required value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-medium text-pq-ink transition-all">
                       <option value="">-- Selecciona Diseñador --</option>
                       {team.map(member => (
                         <option key={member.id} value={member.id}>{member.first_name} {member.last_name}</option>
@@ -513,16 +513,16 @@ export default function MarketingBoard() {
 
                 <div>
                   <label className="block text-sm font-bold text-pq-teal-dark mb-2">Descripción</label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink resize-none" placeholder="¿Qué debe incluir esta pieza?"></textarea>
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink resize-none" placeholder="¿Qué debe incluir esta pieza?"></textarea>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-pq-cream/30 p-4 rounded-xl border border-pq-cream-dark">
-                    <label className="block text-sm font-bold text-pq-teal-dark mb-3">Redes Sociales (Destino) <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-bold text-pq-teal-dark mb-3">Redes Sociales (Destino) <span className="text-pq-error">*</span></label>
                     <div className="flex flex-wrap gap-5">
                       {Object.keys(networks).map(net => (
                         <label key={net} className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={networks[net as keyof typeof networks]} onChange={() => handleNetworkChange(net)} className="w-5 h-5 text-pq-teal border-2 border-pq-cream-dark rounded focus:ring-pq-teal" />
+                          <input type="checkbox" checked={networks[net as keyof typeof networks]} onChange={() => handleNetworkChange(net)} className="w-5 h-5 text-pq-teal border-2 border-pq-border rounded focus:ring-pq-teal" />
                           <span className="text-sm font-bold text-pq-ink/80 group-hover:text-pq-teal transition-colors">{net}</span>
                         </label>
                       ))}
@@ -532,7 +532,7 @@ export default function MarketingBoard() {
                     <label className="block text-sm font-bold text-pq-teal-dark mb-2">Referencias <span className="text-xs text-pq-ink/50 font-medium">(máx. 3 links, opcional)</span></label>
                     <div className="space-y-2">
                       {references.map((ref, i) => (
-                        <input key={i} type="url" value={ref} onChange={(e) => handleReferenceChange(i, e.target.value)} className="w-full px-4 py-2.5 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-medium text-pq-ink transition-all" placeholder={`Link de referencia ${i + 1}`} />
+                        <input key={i} type="url" value={ref} onChange={(e) => handleReferenceChange(i, e.target.value)} className="w-full px-4 py-2.5 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-medium text-pq-ink transition-all" placeholder={`Link de referencia ${i + 1}`} />
                       ))}
                     </div>
                   </div>
@@ -540,12 +540,12 @@ export default function MarketingBoard() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t-2 border-dashed border-pq-cream-dark pt-5">
                   <div>
-                    <label className="block text-sm font-bold text-pq-teal-dark mb-2">Fecha de PUBLICACIÓN <span className="text-red-500">*</span></label>
-                    <input type="date" required value={postDate} onChange={handlePostDateChange} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-medium text-pq-ink transition-all" />
+                    <label className="block text-sm font-bold text-pq-teal-dark mb-2">Fecha de PUBLICACIÓN <span className="text-pq-error">*</span></label>
+                    <input type="date" required value={postDate} onChange={handlePostDateChange} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-medium text-pq-ink transition-all" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-pq-teal-dark mb-2 flex justify-between">Límite de ENTREGA <span className="text-xs text-pq-marku">(-7 días auto)</span></label>
-                    <input type="date" readOnly value={draftDate} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/50 text-pq-ink/50 outline-none cursor-not-allowed font-medium" />
+                    <label className="block text-sm font-bold text-pq-teal-dark mb-2 flex justify-between">Límite de ENTREGA <span className="text-xs text-pq-marku-ink">(-7 días auto)</span></label>
+                    <input type="date" readOnly value={draftDate} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-pq-cream text-pq-ink-muted outline-none cursor-not-allowed font-medium" />
                   </div>
                 </div>
 
@@ -590,7 +590,7 @@ export default function MarketingBoard() {
         <div className="flex flex-col md:flex-row gap-4 mb-6 bg-pq-cream/30 p-4 rounded-xl border border-pq-cream-dark">
           <div className="flex-1">
             <label className="block text-xs font-black text-pq-teal-dark uppercase tracking-wider mb-1.5 flex items-center gap-1"><Filter size={12} /> Estado</label>
-            <select value={statusFilter} onChange={(e) => handleStatusFilterChange(e.target.value)} className="w-full px-3 py-2.5 border-2 border-pq-cream-dark rounded-xl bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-bold text-pq-teal-deep text-sm transition-all">
+            <select value={statusFilter} onChange={(e) => handleStatusFilterChange(e.target.value)} className="w-full px-3 py-2.5 border-2 border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-bold text-pq-teal-deep text-sm transition-all">
               <option value="TODOS">Todos</option>
               <option value="Pendiente">Pendiente</option>
               <option value="En Revisión">En Revisión</option>
@@ -601,9 +601,9 @@ export default function MarketingBoard() {
           <div className="flex-1">
             <label className="block text-xs font-black text-pq-teal-dark uppercase tracking-wider mb-1.5">Mes de publicación</label>
             <div className="flex gap-2">
-              <input type="month" value={monthYearFilter} onChange={(e) => handleMonthYearFilterChange(e.target.value)} className="w-full px-3 py-2.5 border-2 border-pq-cream-dark rounded-xl bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-bold text-pq-teal-deep text-sm transition-all" />
+              <input type="month" value={monthYearFilter} onChange={(e) => handleMonthYearFilterChange(e.target.value)} className="w-full px-3 py-2.5 border-2 border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-bold text-pq-teal-deep text-sm transition-all" />
               {monthYearFilter && (
-                <button type="button" onClick={() => handleMonthYearFilterChange('')} title="Quitar filtro de mes" className="px-3 rounded-xl bg-white border-2 border-pq-cream-dark text-pq-ink/50 hover:text-red-500 hover:border-red-200 transition-colors">
+                <button type="button" onClick={() => handleMonthYearFilterChange('')} title="Quitar filtro de mes" className="px-3 rounded-xl bg-white border-2 border-pq-cream-dark text-pq-ink/50 hover:text-pq-error hover:border-pq-error/20 transition-colors">
                   <X size={16} />
                 </button>
               )}
@@ -611,7 +611,7 @@ export default function MarketingBoard() {
           </div>
           <div className="flex-1">
             <label className="block text-xs font-black text-pq-teal-dark uppercase tracking-wider mb-1.5 flex items-center gap-1"><ArrowUpDown size={12} /> Orden por fecha</label>
-            <select value={sortOrder} onChange={(e) => handleSortOrderChange(e.target.value as 'asc' | 'desc')} className="w-full px-3 py-2.5 border-2 border-pq-cream-dark rounded-xl bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-bold text-pq-teal-deep text-sm transition-all">
+            <select value={sortOrder} onChange={(e) => handleSortOrderChange(e.target.value as 'asc' | 'desc')} className="w-full px-3 py-2.5 border-2 border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-bold text-pq-teal-deep text-sm transition-all">
               <option value="asc">Más próxima primero</option>
               <option value="desc">Más lejana primero</option>
             </select>
@@ -638,10 +638,10 @@ export default function MarketingBoard() {
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                          task.status === 'Pendiente' ? 'bg-gray-100 text-gray-600' :
+                          task.status === 'Pendiente' ? 'bg-pq-cream-dark text-pq-ink-muted' :
                           task.status === 'En Revisión' ? 'bg-blue-100 text-blue-700' :
-                          task.status === 'Observado' ? 'bg-orange-100 text-orange-700' :
-                          'bg-green-100 text-green-700'
+                          task.status === 'Observado' ? 'bg-pq-marku-50 text-pq-marku-ink' :
+                          'bg-pq-teal-50 text-pq-teal-deep'
                         }`}>
                           {task.status}
                         </span>
@@ -649,9 +649,9 @@ export default function MarketingBoard() {
                         <h3 className="font-black text-xl text-pq-teal-deep">{task.title}</h3>
                         {alert && (
                           <span className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full border uppercase tracking-wider ${
-                            alert.type === 'red' ? 'bg-red-100 text-red-700 border-red-300' :
-                            alert.type === 'yellow' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
-                            'bg-green-100 text-green-700 border-green-300'
+                            alert.type === 'red' ? 'bg-pq-error-50 text-pq-error border-pq-error/20' :
+                            alert.type === 'yellow' ? 'bg-pq-marku-50 text-pq-marku-ink border-pq-marku/40' :
+                            'bg-pq-teal-50 text-pq-teal-deep border-pq-teal/25'
                           }`}>
                             <alert.icon size={12} /> {alert.text}
                           </span>
@@ -692,7 +692,7 @@ export default function MarketingBoard() {
 
                       <div className="flex flex-wrap gap-4 text-sm bg-pq-cream/30 p-3 rounded-xl border border-pq-cream-dark w-fit">
                         <p className="text-pq-teal-dark font-medium">
-                          {isSupervisor ? 'Borrador' : 'Fecha límite'}: <span className="font-black text-red-500 ml-1">{task.draft_date.split('-').reverse().join('/')}</span>
+                          {isSupervisor ? 'Borrador' : 'Fecha límite'}: <span className="font-black text-pq-error ml-1">{task.draft_date.split('-').reverse().join('/')}</span>
                         </p>
                         {isSupervisor && (
                           <p className="text-pq-teal-dark font-medium border-l-2 border-pq-cream-dark pl-4">Publicar: <span className="font-black text-pq-teal ml-1">{task.post_date.split('-').reverse().join('/')}</span></p>
@@ -734,17 +734,17 @@ export default function MarketingBoard() {
 
                       {isSupervisor && task.status === 'En Revisión' && (
                         <div className="flex gap-2">
-                          <button onClick={() => executeAction(task.id, 'Observado')} className="flex-1 flex justify-center items-center gap-1 bg-white border-2 border-orange-400 text-orange-600 hover:bg-orange-50 font-bold py-2 px-3 rounded-xl transition-colors text-sm">
+                          <button onClick={() => executeAction(task.id, 'Observado')} className="flex-1 flex justify-center items-center gap-1 bg-white border-2 border-pq-marku/40 text-pq-marku-ink hover:bg-pq-marku-50 font-bold py-2 px-3 rounded-xl transition-colors text-sm">
                             <Edit3 size={16} /> Observar
                           </button>
-                          <button onClick={() => executeAction(task.id, 'Publicado')} className="flex-1 flex justify-center items-center gap-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded-xl transition-all shadow-md shadow-green-500/20 text-sm">
+                          <button onClick={() => executeAction(task.id, 'Publicado')} className="flex-1 flex justify-center items-center gap-1 bg-pq-teal hover:bg-pq-teal-dark text-white font-bold py-2 px-3 rounded-xl transition-all shadow-md shadow-pq-teal/20 text-sm">
                             <CheckCircle2 size={16} /> Aprobar
                           </button>
                         </div>
                       )}
 
                       {task.status === 'Publicado' && (
-                        <p className="text-sm text-green-600 font-black text-center bg-green-50 py-2.5 px-4 rounded-xl flex items-center justify-center gap-1 border border-green-200">
+                        <p className="text-sm text-pq-teal-deep font-black text-center bg-pq-teal-50 py-2.5 px-4 rounded-xl flex items-center justify-center gap-1 border border-pq-teal/25">
                           <CheckCircle2 size={18} /> Listo
                         </p>
                       )}
@@ -782,13 +782,13 @@ export default function MarketingBoard() {
                       )}
 
                       {isSupervisor && (
-                        <button onClick={() => archiveTask(task.id)} className="flex items-center justify-center gap-1 text-red-400 hover:text-red-600 hover:bg-red-50 font-bold py-2 px-3 rounded-xl transition-colors text-xs">
+                        <button onClick={() => archiveTask(task.id)} className="flex items-center justify-center gap-1 text-pq-error hover:text-pq-error hover:bg-pq-error-50 font-bold py-2 px-3 rounded-xl transition-colors text-xs">
                           <Archive size={14} /> Archivar
                         </button>
                       )}
 
                       {isSupervisor && (
-                        <button onClick={() => deleteTask(task)} className="flex items-center justify-center gap-1 text-red-500 hover:text-white hover:bg-red-500 border border-red-200 font-bold py-2 px-3 rounded-xl transition-colors text-xs">
+                        <button onClick={() => deleteTask(task)} className="flex items-center justify-center gap-1 text-pq-error hover:text-white hover:bg-pq-error/90 border border-pq-error/20 font-bold py-2 px-3 rounded-xl transition-colors text-xs">
                           <Trash2 size={14} /> Borrar
                         </button>
                       )}
@@ -831,8 +831,8 @@ export default function MarketingBoard() {
             </h3>
             <p className="text-sm text-pq-ink/70 mb-6 font-medium">Pega el link de tu entregable (Canva, Drive, etc.) para que el equipo lo revise.</p>
             <div>
-              <label className="block text-sm font-bold text-pq-teal-dark mb-2">Link del Entregable <span className="text-red-500">*</span></label>
-              <input type="url" value={submissionLinkInput} onChange={(e) => setSubmissionLinkInput(e.target.value)} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink" placeholder="https://canva.com/..." />
+              <label className="block text-sm font-bold text-pq-teal-dark mb-2">Link del Entregable <span className="text-pq-error">*</span></label>
+              <input type="url" value={submissionLinkInput} onChange={(e) => setSubmissionLinkInput(e.target.value)} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink" placeholder="https://canva.com/..." />
             </div>
             <div className="flex justify-end gap-3 mt-8">
               <button onClick={() => setShowSubmitModal(false)} className="px-5 py-2.5 text-pq-ink/70 font-bold hover:bg-pq-cream rounded-xl transition-colors">Cancelar</button>
@@ -853,21 +853,21 @@ export default function MarketingBoard() {
 
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-pq-teal-dark mb-2">Título <span className="text-red-500">*</span></label>
-                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink" />
+                <label className="block text-sm font-bold text-pq-teal-dark mb-2">Título <span className="text-pq-error">*</span></label>
+                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink" />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-pq-teal-dark mb-2">Descripción</label>
-                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={2} className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink resize-none"></textarea>
+                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={2} className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink resize-none"></textarea>
               </div>
 
               <div className="bg-pq-cream/30 p-4 rounded-xl border border-pq-cream-dark">
-                <label className="block text-sm font-bold text-pq-teal-dark mb-3">Redes Sociales <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-bold text-pq-teal-dark mb-3">Redes Sociales <span className="text-pq-error">*</span></label>
                 <div className="flex flex-wrap gap-5">
                   {Object.keys(editNetworks).map(net => (
                     <label key={net} className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" checked={editNetworks[net as keyof typeof editNetworks]} onChange={() => handleEditNetworkChange(net)} className="w-5 h-5 text-pq-teal border-2 border-pq-cream-dark rounded focus:ring-pq-teal" />
+                      <input type="checkbox" checked={editNetworks[net as keyof typeof editNetworks]} onChange={() => handleEditNetworkChange(net)} className="w-5 h-5 text-pq-teal border-2 border-pq-border rounded focus:ring-pq-teal" />
                       <span className="text-sm font-bold text-pq-ink/80 group-hover:text-pq-teal transition-colors">{net}</span>
                     </label>
                   ))}
@@ -878,7 +878,7 @@ export default function MarketingBoard() {
                 <label className="block text-sm font-bold text-pq-teal-dark mb-2">Referencias <span className="text-xs text-pq-ink/50 font-medium">(máx. 3 links)</span></label>
                 <div className="space-y-2">
                   {editReferences.map((ref, i) => (
-                    <input key={i} type="url" value={ref} onChange={(e) => handleEditReferenceChange(i, e.target.value)} className="w-full px-4 py-2.5 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-medium text-pq-ink transition-all" placeholder={`Link de referencia ${i + 1}`} />
+                    <input key={i} type="url" value={ref} onChange={(e) => handleEditReferenceChange(i, e.target.value)} className="w-full px-4 py-2.5 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-medium text-pq-ink transition-all" placeholder={`Link de referencia ${i + 1}`} />
                   ))}
                 </div>
               </div>

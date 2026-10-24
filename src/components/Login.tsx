@@ -47,7 +47,7 @@ export default function Login() {
   return (
     <div className="min-h-screen relative isolate bg-white flex justify-center items-center p-4">
       <FondoParticulas />
-      <div className="w-full max-w-md bg-white/30 backdrop-blur-[2px] p-8 md:p-10 rounded-3xl shadow-xl border border-white/70">
+      <div className="w-full max-w-md bg-white/30 backdrop-blur-[2px] p-8 md:p-10 rounded-3xl shadow-xl border border-white/70 border-t-[6px] border-t-pq-brand">
         
         <div className="text-center mb-10">
           <h2 className="text-4xl font-black text-pq-teal-deep flex items-center justify-center gap-1.5 tracking-tight">
@@ -65,7 +65,7 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink"
+              className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink"
               placeholder="tu@correo.com"
             />
           </div>
@@ -77,7 +77,7 @@ export default function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink"
+              className="w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink"
               placeholder="••••••••"
             />
           </div>
@@ -89,7 +89,7 @@ export default function Login() {
           </div>
 
           {errorMsg && (
-            <div className="bg-red-50 text-red-600 text-sm text-center font-bold p-3 rounded-xl border border-red-100">
+            <div className="bg-pq-error-50 text-pq-error text-sm text-center font-bold p-3 rounded-xl border border-pq-error/20">
               {errorMsg}
               {needsConfirmation && (
                 <button type="button" onClick={handleResend} disabled={resending} className="block mx-auto mt-2 text-pq-teal font-black hover:underline disabled:opacity-60">

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { MapPin, Phone, User, Map, Info, Activity, ChevronDown, ChevronUp, Pencil, Home, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { MapPin, Phone, User, Map, Info, ChevronDown, ChevronUp, Pencil, Home, Flag, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { DISTRITOS_LIMA, DISTRITOS_CALLAO, ACTION_LINES, getActionLineColor } from '../lib/catalogs';
+import { DISTRITOS_LIMA, DISTRITOS_CALLAO, ACTION_LINES } from '../lib/catalogs';
 import { PATTERNS, TITLES } from '../lib/validations';
 import { esBorradoBloqueado } from '../lib/dbErrors';
 import ConfirmDialog from './ConfirmDialog';
+import { ChipLinea, EncabezadoPagina, Modal, BotonPrimario, BotonSecundario, inputClass, labelClass } from './JornadaUI';
 
 type Location = {
   id: string;
@@ -174,8 +175,8 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
 
   const visibles = locations.filter(l => (l.status === 'ARCHIVADO') === verArchivados);
 
-  const inputClass = "w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink";
-  const labelClass = "block text-sm font-bold text-pq-teal-dark mb-2";
+  // Botón de icono de las tarjetas (editar, archivar, borrar, mapa).
+  const iconBtn = "w-11 h-11 md:w-9 md:h-9 rounded-[10px] bg-pq-cream text-pq-teal-dark flex items-center justify-center hover:bg-pq-cream-dark transition-colors disabled:bg-transparent disabled:text-pq-ink/25 disabled:cursor-not-allowed";
 
   // Selector de distrito reutilizado por el formulario de alta y el de edición.
   const DistrictSelect = ({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void }) => (
@@ -197,85 +198,88 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
   );
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-6 md:gap-7">
+      <EncabezadoPagina titulo="Lugares aliados" descripcion="Registra los lugares donde se hacen las jornadas y mantén su información al día." />
 
       {/* FORMULARIO DE CREACIÓN */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-pq-cream-dark shadow-sm">
-        <h2 className="text-2xl font-black text-pq-teal-deep mb-6 flex items-center gap-2">
+      <section className="bg-white p-5 md:p-7 rounded-[20px] shadow-pq-card">
+        <h2 className="text-xl md:text-[22px] font-extrabold text-pq-teal-deep mb-5 flex items-center gap-2">
           Registrar Nuevo Lugar / Aliado <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <label className={labelClass}>Nombre del Lugar / Organización <span className="text-red-500">*</span></label>
+          <div className="flex flex-wrap gap-5">
+            <div className="flex-[2_1_320px] min-w-0">
+              <label className={labelClass}>Nombre del Lugar / Organización <span className="text-pq-error">*</span></label>
               <input type="text" name="name" required value={formData.name} onChange={handleChange} className={inputClass} placeholder="Ej: Albergue 4 Patas" />
             </div>
-            <div>
-              <label className={labelClass}>Línea de Acción <span className="text-red-500">*</span></label>
+            <div className="flex-[1_1_200px] min-w-0">
+              <label className={labelClass}>Línea de Acción <span className="text-pq-error">*</span></label>
               <ActionLineSelect value={formData.action_line} onChange={handleChange} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className={labelClass}>Encargado(a) <span className="text-red-500">*</span></label>
+          <div className="flex flex-wrap gap-5">
+            <div className="flex-[1_1_260px] min-w-0">
+              <label className={labelClass}>Encargado(a) <span className="text-pq-error">*</span></label>
               <input type="text" name="manager_name" required pattern={PATTERNS.soloLetras} title={TITLES.soloLetras} value={formData.manager_name} onChange={handleChange} className={inputClass} placeholder="Nombre del contacto principal" />
             </div>
-            <div>
-              <label className={labelClass}>Teléfono de Contacto <span className="text-xs font-medium text-pq-ink/50">(9 números)</span> <span className="text-red-500">*</span></label>
+            <div className="flex-[1_1_200px] min-w-0">
+              <label className={labelClass}>Teléfono de Contacto <span className="text-xs font-medium text-pq-ink-muted">(9 números)</span> <span className="text-pq-error">*</span></label>
               <input type="text" name="contact_phone" required maxLength={9} inputMode="numeric" pattern={PATTERNS.celular} title={TITLES.celular} value={formData.contact_phone} onChange={handleChange} className={inputClass} placeholder="Ej: 999888777" />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <label className={labelClass}>Dirección Exacta <span className="text-red-500">*</span></label>
+          <div className="flex flex-wrap gap-5">
+            <div className="flex-[2_1_320px] min-w-0">
+              <label className={labelClass}>Dirección Exacta <span className="text-pq-error">*</span></label>
               <input type="text" name="address" required value={formData.address} onChange={handleChange} className={inputClass} />
             </div>
-            <div>
-              <label className={labelClass}>Distrito <span className="text-red-500">*</span></label>
+            <div className="flex-[1_1_200px] min-w-0">
+              <label className={labelClass}>Distrito <span className="text-pq-error">*</span></label>
               <DistrictSelect value={formData.district} onChange={handleChange} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className={labelClass}>Punto de Encuentro <span className="text-red-500">*</span></label>
+          <div className="flex flex-wrap gap-5">
+            <div className="flex-[1_1_260px] min-w-0">
+              <label className={labelClass}>Punto de Encuentro <span className="text-pq-error">*</span></label>
               <input type="text" name="meeting_point" required value={formData.meeting_point} onChange={handleChange} className={inputClass} placeholder="Ej: Puerta principal / Estación de tren" />
             </div>
-            <div>
-              <label className={labelClass}>Link de Google Maps <span className="text-red-500">*</span></label>
+            <div className="flex-[1_1_200px] min-w-0">
+              <label className={labelClass}>Link de Google Maps <span className="text-pq-error">*</span></label>
               <input type="url" name="maps_link" required value={formData.maps_link} onChange={handleChange} className={inputClass} placeholder="https://maps.app.goo.gl/..." />
             </div>
           </div>
 
           <div>
-            <label className={labelClass}>Indicaciones Especiales <span className="text-red-500">*</span></label>
+            <label className={labelClass}>Indicaciones Especiales <span className="text-pq-error">*</span></label>
             <textarea name="special_instructions" required value={formData.special_instructions} onChange={handleChange} rows={2} className={`${inputClass} resize-none`} placeholder="Ej: Llevar botas de agua, tocar timbre rojo..."></textarea>
           </div>
 
-          <div className="flex justify-end mt-6 pt-4 border-t-2 border-dashed border-pq-cream-dark">
-            <button type="submit" disabled={loading} className="bg-pq-teal hover:bg-pq-teal-dark text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-pq-teal/30 hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex justify-end pt-5 border-t border-pq-cream-dark">
+            <BotonPrimario type="submit" disabled={loading} className="w-full sm:w-auto">
               {loading ? 'Guardando...' : 'Guardar Lugar'}
-            </button>
+            </BotonPrimario>
           </div>
         </form>
-      </div>
+      </section>
 
       {/* DIRECTORIO DE LUGARES */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-pq-cream-dark shadow-sm">
+      <section className="bg-white p-5 md:p-7 rounded-[20px] shadow-pq-card">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <h2 className="text-2xl font-black text-pq-teal-deep flex items-center gap-2">
+          <h2 className="text-xl md:text-[22px] font-extrabold text-pq-teal-deep flex items-center gap-2">
             Directorio de Lugares Aliados <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
           </h2>
-          <div className="flex bg-pq-cream/50 p-1 rounded-xl border border-pq-cream-dark text-sm font-bold">
+          <div role="tablist" className="flex bg-pq-cream p-1 rounded-xl border border-pq-cream-dark text-sm font-semibold">
             {[false, true].map(archivados => (
               <button
                 key={String(archivados)}
                 type="button"
+                role="tab"
+                aria-selected={verArchivados === archivados}
                 onClick={() => setVerArchivados(archivados)}
-                className={`px-4 py-1.5 rounded-lg transition-colors ${verArchivados === archivados ? 'bg-white text-pq-teal-deep shadow-sm' : 'text-pq-ink/60 hover:text-pq-teal-dark'}`}
+                className={`min-h-9 px-4 py-1.5 rounded-[9px] transition-colors ${verArchivados === archivados ? 'bg-white text-pq-teal-deep shadow-sm' : 'text-pq-ink-muted hover:text-pq-teal-dark'}`}
               >
                 {archivados ? 'Archivados' : 'Activos'} ({locations.filter(l => (l.status === 'ARCHIVADO') === archivados).length})
               </button>
@@ -286,36 +290,34 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
         {fetching ? (
           <div className="flex justify-center p-10"><p className="text-pq-teal-dark font-bold animate-pulse">Cargando directorio...</p></div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
             {visibles.map((loc) => {
               const isExpanded = expandedId === loc.id;
               const archivado = loc.status === 'ARCHIVADO';
               const nJornadas = jornadasPorLugar[loc.id] || 0;
 
               return (
-                <div key={loc.id} className={`border-2 rounded-2xl p-5 transition-all flex flex-col group ${archivado ? 'bg-pq-cream/30' : 'bg-white'} ${
-                  isExpanded ? 'border-pq-teal shadow-lg' : 'border-pq-cream-dark hover:border-pq-teal/40 hover:shadow-lg'
+                <article key={loc.id} className={`rounded-2xl p-5 transition-all flex flex-col gap-3 ${archivado ? 'bg-pq-cream/40' : 'bg-white'} ${
+                  isExpanded ? 'border-[1.5px] border-pq-teal shadow-pq-card' : 'border border-pq-cream-dark'
                 }`}>
 
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex justify-between items-start gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border flex items-center gap-1 ${getActionLineColor(loc.action_line)}`}>
-                        <Activity size={12}/> {loc.action_line}
-                      </span>
+                      <ChipLinea linea={loc.action_line} />
                       {archivado && (
-                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border border-pq-ink/20 bg-pq-ink/5 text-pq-ink/60">Archivado</span>
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full border border-pq-cream-dark bg-pq-cream text-pq-ink-muted">Archivado</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => openEdit(loc)} title="Editar lugar" className="text-pq-teal-dark hover:text-pq-teal transition-colors">
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => openEdit(loc)} aria-label="Editar lugar" title="Editar lugar" className={iconBtn}>
                         <Pencil size={16} />
                       </button>
                       {archivaLugares && (archivado ? (
-                        <button type="button" onClick={() => setAccion({ tipo: 'restaurar', loc })} title="Restaurar lugar" className="text-pq-teal-dark hover:text-pq-teal transition-colors">
+                        <button type="button" onClick={() => setAccion({ tipo: 'restaurar', loc })} aria-label="Restaurar lugar" title="Restaurar lugar" className={iconBtn}>
                           <ArchiveRestore size={16} />
                         </button>
                       ) : (
-                        <button type="button" onClick={() => setAccion({ tipo: 'archivar', loc })} title="Archivar lugar" className="text-pq-teal-dark hover:text-pq-teal transition-colors">
+                        <button type="button" onClick={() => setAccion({ tipo: 'archivar', loc })} aria-label="Archivar lugar" title="Archivar lugar" className={iconBtn}>
                           <Archive size={16} />
                         </button>
                       ))}
@@ -324,35 +326,38 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
                           type="button"
                           onClick={() => setAccion({ tipo: 'borrar', loc })}
                           disabled={nJornadas > 0}
+                          aria-label="Borrar lugar"
                           title={nJornadas > 0 ? `Tiene ${nJornadas} jornada(s): archívalo en vez de borrarlo` : 'Borrar lugar'}
-                          className="text-red-600 hover:text-red-700 transition-colors disabled:text-pq-ink/25 disabled:cursor-not-allowed"
+                          className={`${iconBtn} text-pq-error`}
                         >
                           <Trash2 size={16} />
                         </button>
                       )}
                       {loc.maps_link && (
-                        <a href={loc.maps_link} target="_blank" rel="noreferrer" className="text-pq-teal-dark hover:text-pq-teal transition-colors" title="Ver en Maps">
-                          <Map size={18} />
+                        <a href={loc.maps_link} target="_blank" rel="noreferrer" className={iconBtn} aria-label="Ver en Maps" title="Ver en Maps">
+                          <Map size={16} />
                         </a>
                       )}
                     </div>
                   </div>
 
-                  <h3 className="font-black text-xl text-pq-teal-deep mb-1 leading-tight group-hover:text-pq-teal transition-colors">{loc.name}</h3>
-                  <p className="text-sm text-pq-ink/70 font-medium flex items-center gap-1.5 mb-4">
-                    <MapPin size={14} className="text-pq-teal-dark/60 min-w-[14px]"/> {loc.district}
-                  </p>
+                  <div>
+                    <h3 className="text-lg font-bold text-pq-ink leading-snug">{loc.name}</h3>
+                    <p className="mt-1 text-sm text-pq-ink-muted flex items-center gap-1.5">
+                      <MapPin size={14} className="min-w-[14px]" aria-hidden="true" /> {loc.district}
+                    </p>
+                  </div>
 
-                  <div className="space-y-2 bg-pq-cream/30 p-3 rounded-xl border border-pq-cream-dark/50">
-                    <div className="flex items-center gap-2 text-sm text-pq-ink/80">
-                      <User size={14} className="text-pq-teal-dark"/>
-                      <span className="font-bold">{loc.manager_name || 'Sin encargado'}</span>
-                    </div>
+                  <div className="flex flex-col gap-1.5 bg-pq-cream p-3 rounded-xl text-sm">
+                    <span className="flex items-center gap-2 font-semibold">
+                      <User size={14} className="text-pq-teal-dark" aria-hidden="true" />
+                      {loc.manager_name || 'Sin encargado'}
+                    </span>
                     {loc.contact_phone && (
-                      <div className="flex items-center gap-2 text-sm text-pq-ink/80">
-                        <Phone size={14} className="text-pq-teal-dark"/>
-                        <span className="font-medium">{loc.contact_phone}</span>
-                      </div>
+                      <span className="flex items-center gap-2 text-pq-ink-muted">
+                        <Phone size={14} className="text-pq-teal-dark" aria-hidden="true" />
+                        {loc.contact_phone}
+                      </span>
                     )}
                   </div>
 
@@ -362,49 +367,51 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
                       <button
                         type="button"
                         onClick={() => toggleExpand(loc.id)}
-                        className="w-full flex items-center justify-between mt-3 pt-3 border-t-2 border-dashed border-pq-cream-dark text-xs font-black text-pq-teal-dark uppercase tracking-wider hover:text-pq-teal transition-colors"
+                        aria-expanded={isExpanded}
+                        className="w-full flex items-center justify-between min-h-10 pt-2 border-t border-pq-cream-dark text-sm font-semibold text-pq-teal hover:text-pq-teal-dark transition-colors"
                       >
                         {isExpanded ? 'Ocultar detalles' : 'Ver detalles'}
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-3 space-y-2">
+                        <div className="flex flex-col gap-2.5 text-[13px] text-pq-ink-muted">
                           {loc.address && (
-                            <p className="text-xs text-pq-ink/70 flex gap-1.5 items-start">
-                              <Home size={12} className="text-pq-teal-dark mt-0.5 min-w-[12px]"/>
+                            <p className="flex gap-2 items-start">
+                              <Home size={14} className="text-pq-teal-dark mt-0.5 min-w-[14px]" aria-hidden="true" />
                               <span>{loc.address}</span>
                             </p>
                           )}
                           {loc.meeting_point && (
-                            <p className="text-xs text-pq-ink/70 flex gap-1">
-                              <span className="font-bold text-pq-teal-dark min-w-[50px]">Punto:</span> {loc.meeting_point}
+                            <p className="flex gap-2 items-start">
+                              <Flag size={14} className="text-pq-teal-dark mt-0.5 min-w-[14px]" aria-hidden="true" />
+                              <span><strong className="text-pq-ink">Punto de encuentro:</strong> {loc.meeting_point}</span>
                             </p>
                           )}
                           {loc.special_instructions && (
-                            <p className="text-xs text-pq-ink/70 flex gap-1 items-start">
-                              <Info size={12} className="text-pq-marku mt-0.5 min-w-[12px]"/>
-                              <span className="italic">{loc.special_instructions}</span>
+                            <p className="flex gap-2 items-start px-2.5 py-2 rounded-lg bg-pq-marku-50 text-pq-marku-ink">
+                              <Info size={14} className="mt-0.5 min-w-[14px]" aria-hidden="true" />
+                              <span>{loc.special_instructions}</span>
                             </p>
                           )}
                         </div>
                       )}
                     </>
                   )}
-                </div>
+                </article>
               );
             })}
 
             {visibles.length === 0 && (
-              <div className="col-span-full text-center p-10 bg-pq-cream/50 rounded-2xl border-2 border-dashed border-pq-cream-dark">
-                <p className="text-pq-teal-dark font-medium">
+              <div className="col-span-full text-center p-10 bg-pq-cream rounded-2xl border border-pq-cream-dark">
+                <p className="text-pq-ink-muted">
                   {verArchivados ? 'No hay lugares archivados.' : 'No tienes lugares aliados registrados aún.'}
                 </p>
               </div>
             )}
           </div>
         )}
-      </div>
+      </section>
 
       {/* CONFIRMAR ARCHIVAR / RESTAURAR / BORRAR */}
       {accion && (
@@ -433,71 +440,68 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
 
       {/* MODAL DE EDICIÓN DE LUGAR */}
       {editingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-pq-ink/60 backdrop-blur-sm px-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 border border-pq-cream-dark my-8 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-black text-pq-teal-deep mb-6 flex items-center gap-2">
-              Editar Lugar <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
-            </h3>
-
-            <form onSubmit={handleUpdate} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Nombre del Lugar / Organización <span className="text-red-500">*</span></label>
+        <form onSubmit={handleUpdate}>
+          <Modal
+            titulo="Editar Lugar"
+            onCerrar={() => setEditingId(null)}
+            ancho="max-w-[680px]"
+            pie={<>
+              <BotonSecundario onClick={() => setEditingId(null)} disabled={savingEdit}>Cancelar</BotonSecundario>
+              <BotonPrimario type="submit" disabled={savingEdit}>{savingEdit ? 'Guardando...' : 'Guardar Cambios'}</BotonPrimario>
+            </>}
+          >
+            <div className="space-y-5">
+              <div className="flex flex-wrap gap-5">
+                <div className="flex-[2_1_320px] min-w-0">
+                  <label className={labelClass}>Nombre del Lugar / Organización <span className="text-pq-error">*</span></label>
                   <input type="text" name="name" required value={editForm.name} onChange={handleEditChange} className={inputClass} />
                 </div>
-                <div>
-                  <label className={labelClass}>Línea de Acción <span className="text-red-500">*</span></label>
+                <div className="flex-[1_1_200px] min-w-0">
+                  <label className={labelClass}>Línea de Acción <span className="text-pq-error">*</span></label>
                   <ActionLineSelect value={editForm.action_line} onChange={handleEditChange} />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className={labelClass}>Encargado(a) <span className="text-red-500">*</span></label>
+              <div className="flex flex-wrap gap-5">
+                <div className="flex-[1_1_260px] min-w-0">
+                  <label className={labelClass}>Encargado(a) <span className="text-pq-error">*</span></label>
                   <input type="text" name="manager_name" required pattern={PATTERNS.soloLetras} title={TITLES.soloLetras} value={editForm.manager_name} onChange={handleEditChange} className={inputClass} />
                 </div>
-                <div>
-                  <label className={labelClass}>Teléfono de Contacto <span className="text-xs font-medium text-pq-ink/50">(9 números)</span> <span className="text-red-500">*</span></label>
+                <div className="flex-[1_1_200px] min-w-0">
+                  <label className={labelClass}>Teléfono de Contacto <span className="text-xs font-medium text-pq-ink-muted">(9 números)</span> <span className="text-pq-error">*</span></label>
                   <input type="text" name="contact_phone" required maxLength={9} inputMode="numeric" pattern={PATTERNS.celular} title={TITLES.celular} value={editForm.contact_phone} onChange={handleEditChange} className={inputClass} />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Dirección Exacta <span className="text-red-500">*</span></label>
+              <div className="flex flex-wrap gap-5">
+                <div className="flex-[2_1_320px] min-w-0">
+                  <label className={labelClass}>Dirección Exacta <span className="text-pq-error">*</span></label>
                   <input type="text" name="address" required value={editForm.address} onChange={handleEditChange} className={inputClass} />
                 </div>
-                <div>
-                  <label className={labelClass}>Distrito <span className="text-red-500">*</span></label>
+                <div className="flex-[1_1_200px] min-w-0">
+                  <label className={labelClass}>Distrito <span className="text-pq-error">*</span></label>
                   <DistrictSelect value={editForm.district} onChange={handleEditChange} />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className={labelClass}>Punto de Encuentro <span className="text-red-500">*</span></label>
+              <div className="flex flex-wrap gap-5">
+                <div className="flex-[1_1_260px] min-w-0">
+                  <label className={labelClass}>Punto de Encuentro <span className="text-pq-error">*</span></label>
                   <input type="text" name="meeting_point" required value={editForm.meeting_point} onChange={handleEditChange} className={inputClass} />
                 </div>
-                <div>
-                  <label className={labelClass}>Link de Google Maps <span className="text-red-500">*</span></label>
+                <div className="flex-[1_1_200px] min-w-0">
+                  <label className={labelClass}>Link de Google Maps <span className="text-pq-error">*</span></label>
                   <input type="url" name="maps_link" required value={editForm.maps_link} onChange={handleEditChange} className={inputClass} />
                 </div>
               </div>
 
               <div>
-                <label className={labelClass}>Indicaciones Especiales <span className="text-red-500">*</span></label>
+                <label className={labelClass}>Indicaciones Especiales <span className="text-pq-error">*</span></label>
                 <textarea name="special_instructions" required value={editForm.special_instructions} onChange={handleEditChange} rows={3} className={`${inputClass} resize-none`}></textarea>
               </div>
-
-              <div className="flex justify-end gap-3 mt-8 pt-4 border-t-2 border-dashed border-pq-cream-dark">
-                <button type="button" onClick={() => setEditingId(null)} className="px-5 py-2.5 text-pq-ink/70 font-bold hover:bg-pq-cream rounded-xl transition-colors">Cancelar</button>
-                <button type="submit" disabled={savingEdit} className="px-5 py-2.5 bg-pq-teal text-white font-bold rounded-xl hover:bg-pq-teal-dark shadow-lg shadow-pq-teal/30 transition-all">
-                  {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </div>
+          </Modal>
+        </form>
       )}
     </div>
   );

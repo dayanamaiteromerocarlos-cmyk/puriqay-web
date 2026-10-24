@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calendar, Clock, MapPin, UserSquare2, Activity, ChevronDown, ChevronUp, FileText, Pencil, Trash2, Lock } from 'lucide-react';
-import { getActionLineColor } from '../lib/catalogs';
+import { MapPin, Pencil, Trash2, Lock, EllipsisVertical, Eye, Plus } from 'lucide-react';
+import { ChipLinea, EncabezadoPagina, ImagenJornada, Modal, BotonPrimario, BotonSecundario, inputClass, labelClass } from './JornadaUI';
+import { estadoJornada, fechaCorta, horario, type EstadoJornada } from '../lib/jornadas';
 import LoadError from './LoadError';
 import ConfirmDialog from './ConfirmDialog';
 import toast from 'react-hot-toast';
@@ -33,7 +34,23 @@ const emptyForm: JornadaForm = {
   description: ''
 };
 
-export default function Jornadas() {
+const ESTILO_ESTADO: Record<EstadoJornada, string> = {
+  'Hoy': 'bg-pq-teal text-white',
+  'Próxima': 'bg-pq-marku-50 text-pq-marku-ink',
+  'Pasada': 'bg-pq-cream text-pq-ink-muted border border-pq-cream-dark',
+};
+
+// Orden de las tarjetas: las de hoy, luego las próximas (la más cercana primero) y
+// al final las pasadas (la más reciente primero).
+const ORDEN_ESTADO: Record<EstadoJornada, number> = { 'Hoy': 0, 'Próxima': 1, 'Pasada': 2 };
+const ordenarJornadas = (lista: any[], hoy: string) => [...lista].sort((a, b) => {
+  const ea = estadoJornada(a.date, hoy), eb = estadoJornada(b.date, hoy);
+  if (ea !== eb) return ORDEN_ESTADO[ea] - ORDEN_ESTADO[eb];
+  const porFecha = `${a.date} ${a.start_time}`.localeCompare(`${b.date} ${b.start_time}`);
+  return ea === 'Pasada' ? -porFecha : porFecha;
+});
+
+export default function Jornadas({ onVerDetalle }: { onVerDetalle: (jornadaId: string) => void }) {
   const [jornadas, setJornadas] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [coordinators, setCoordinators] = useState<any[]>([]);
@@ -45,11 +62,11 @@ export default function Jornadas() {
   // y su fecha, horario y horas válidas no cambian (la base lo impide igual).
   const [asistenciasPorJornada, setAsistenciasPorJornada] = useState<Record<string, number>>({});
 
-  // La descripción de cada jornada se muestra solo al hacer clic, para que la lista
-  // se mantenga compacta.
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const toggleExpand = (id: string) => setExpandedId(prev => (prev === id ? null : id));
+  // Menú ⋮ abierto (id de la jornada).
+  const [menuAbierto, setMenuAbierto] = useState<string | null>(null);
 
+  // Alta de una jornada nueva (modal "Programar Nueva Jornada").
+  const [creando, setCreando] = useState(false);
   const [formData, setFormData] = useState<JornadaForm>(emptyForm);
 
   // Edición de una jornada ya programada.
@@ -157,6 +174,7 @@ export default function Jornadas() {
     } else {
       toast.success('¡Jornada programada con éxito!');
       setFormData({ ...emptyForm, type: formData.type });
+      setCreando(false);
       fetchData();
     }
     setLoading(false);
@@ -244,8 +262,12 @@ export default function Jornadas() {
     setBorrando(null);
   };
 
-  const inputClass = "w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink disabled:opacity-60 disabled:cursor-not-allowed";
-  const labelClass = "block text-sm font-bold text-pq-teal-dark mb-2";
+  // Etiqueta de un campo: asterisco si es obligatorio; candado si está bloqueado.
+  const etiqueta = (htmlFor: string, texto: string, bloqueado = false) => (
+    <label htmlFor={htmlFor} className={labelClass}>
+      {texto} {bloqueado ? <Lock size={14} aria-label="bloqueado" /> : <span className="text-pq-error">*</span>}
+    </label>
+  );
 
   // Campos del formulario, compartidos por el alta y la edición.
   // `actual`: la jornada que se edita (su lugar o responsable pueden no estar en las
@@ -264,15 +286,15 @@ export default function Jornadas() {
     const responsableFueraDeLista = actual?.coordinator_id && !coordinators.some(c => c.id === actual.coordinator_id);
 
     return (
-      <>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className={labelClass}>Nombre de la Jornada <span className="text-red-500">*</span></label>
-            <input type="text" name="name" required value={form.name} onChange={onChange} className={inputClass} placeholder="Ej: Limpieza de Verano" />
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-wrap gap-5">
+          <div className="flex-[1_1_220px] min-w-0">
+            {etiqueta('j-nombre', 'Nombre de la Jornada')}
+            <input id="j-nombre" type="text" name="name" required value={form.name} onChange={onChange} className={inputClass} placeholder="Ej: Limpieza de Verano" />
           </div>
-          <div>
-            <label className={labelClass}>Lugar del Voluntariado <span className="text-red-500">*</span></label>
-            <select name="location_id" required value={form.location_id} onChange={onChange} className={inputClass}>
+          <div className="flex-[1_1_220px] min-w-0">
+            {etiqueta('j-lugar', 'Lugar del Voluntariado')}
+            <select id="j-lugar" name="location_id" required value={form.location_id} onChange={onChange} className={inputClass}>
               <option value="">-- Selecciona un Lugar Aliado --</option>
               {lugarActualFueraDeLista && (
                 <option value={actual.location_id}>
@@ -284,17 +306,14 @@ export default function Jornadas() {
               ))}
             </select>
             {selectedLocation && (
-              <p className="mt-2 text-xs font-medium text-pq-ink/60 flex items-center gap-1.5">
-                Línea de acción:
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border flex items-center gap-1 ${getActionLineColor(selectedLocation.action_line)}`}>
-                  <Activity size={10}/> {selectedLocation.action_line}
-                </span>
+              <p className="mt-2 text-xs font-medium text-pq-ink-muted flex items-center gap-1.5">
+                Línea de acción: <ChipLinea linea={selectedLocation.action_line} />
               </p>
             )}
           </div>
-          <div>
-            <label className={labelClass}>Responsable (Interno) <span className="text-red-500">*</span></label>
-            <select name="coordinator_id" required value={form.coordinator_id} onChange={onChange} className={inputClass}>
+          <div className="flex-[1_1_220px] min-w-0">
+            {etiqueta('j-responsable', 'Responsable (Interno)')}
+            <select id="j-responsable" name="coordinator_id" required value={form.coordinator_id} onChange={onChange} className={inputClass}>
               <option value="">-- Selecciona Responsable --</option>
               {responsableFueraDeLista && (
                 <option value={actual.coordinator_id}>
@@ -309,34 +328,34 @@ export default function Jornadas() {
         </div>
 
         {bloqueado && (
-          <p className="text-xs font-bold text-pq-marku flex items-center gap-1.5">
-            <Lock size={14} /> Esta jornada ya tiene asistencias registradas: la fecha, el horario y las horas válidas no se pueden cambiar.
+          <p className="px-3.5 py-3 rounded-xl bg-pq-marku-50 text-pq-marku-ink text-[13px] font-semibold flex items-start gap-2">
+            <Lock size={16} className="shrink-0 mt-0.5" aria-hidden="true" /> Esta jornada ya tiene asistencias registradas: la fecha, el horario y las horas válidas no se pueden cambiar.
           </p>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div>
-            <label className={labelClass}>Fecha <span className="text-red-500">*</span></label>
-            <input type="date" name="date" required disabled={bloqueado} min={actual ? undefined : todayInLima()} value={form.date} onChange={onChange} className={inputClass} />
+        <div className="flex flex-wrap gap-5">
+          <div className="flex-[1_1_150px] min-w-0">
+            {etiqueta('j-fecha', 'Fecha', bloqueado)}
+            <input id="j-fecha" type="date" name="date" required disabled={bloqueado} min={actual ? undefined : todayInLima()} value={form.date} onChange={onChange} className={inputClass} />
           </div>
-          <div>
-            <label className={labelClass}>Hora Inicio <span className="text-red-500">*</span></label>
-            <input type="time" name="start_time" required disabled={bloqueado} value={form.start_time} onChange={onChange} className={inputClass} />
+          <div className="flex-[1_1_150px] min-w-0">
+            {etiqueta('j-inicio', 'Hora Inicio', bloqueado)}
+            <input id="j-inicio" type="time" name="start_time" required disabled={bloqueado} value={form.start_time} onChange={onChange} className={inputClass} />
           </div>
-          <div>
-            <label className={labelClass}>Hora Fin <span className="text-red-500">*</span></label>
-            <input type="time" name="end_time" required disabled={bloqueado} value={form.end_time} onChange={onChange} className={inputClass} />
+          <div className="flex-[1_1_150px] min-w-0">
+            {etiqueta('j-fin', 'Hora Fin', bloqueado)}
+            <input id="j-fin" type="time" name="end_time" required disabled={bloqueado} value={form.end_time} onChange={onChange} className={inputClass} />
           </div>
-          <div>
-            <label className={labelClass}>Horas Válidas <span className="text-red-500">*</span></label>
-            <input type="number" step="0.5" min="0.5" name="valid_hours" required disabled={bloqueado} value={form.valid_hours} onChange={onChange} className={inputClass} placeholder="Ej: 3" />
+          <div className="flex-[1_1_150px] min-w-0">
+            {etiqueta('j-horas', 'Horas Válidas', bloqueado)}
+            <input id="j-horas" type="number" step="0.5" min="0.5" name="valid_hours" required disabled={bloqueado} value={form.valid_hours} onChange={onChange} className={inputClass} placeholder="Ej: 3" />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-          <div>
-            <label className={labelClass}>Tipo de Actividad <span className="text-red-500">*</span></label>
-            <select name="type" required value={form.type} onChange={onChange} className={inputClass}>
+        <div className="flex flex-wrap gap-5">
+          <div className="flex-[1_1_220px] min-w-0">
+            {etiqueta('j-tipo', 'Tipo de Actividad')}
+            <select id="j-tipo" name="type" required value={form.type} onChange={onChange} className={inputClass}>
               <option value="Jornada de Campo">Jornada de Campo</option>
               <option value="Taller / Charla">Taller / Charla</option>
               <option value="Reunión Virtual">Reunión Virtual</option>
@@ -344,146 +363,112 @@ export default function Jornadas() {
               <option value="Otro">Otro</option>
             </select>
           </div>
-          <div>
-            <label className={labelClass}>Descripción de Actividades <span className="text-red-500">*</span></label>
-            <textarea name="description" required value={form.description} onChange={onChange} rows={1} className={`${inputClass} resize-none`} placeholder="¿Qué se hará exactamente?"></textarea>
+          <div className="flex-[2_1_340px] min-w-0">
+            {etiqueta('j-descripcion', 'Descripción de Actividades')}
+            <textarea id="j-descripcion" name="description" required value={form.description} onChange={onChange} rows={3} className={`${inputClass} resize-none`} placeholder="¿Qué se hará exactamente?"></textarea>
           </div>
         </div>
-      </>
+      </div>
     );
   };
 
+  const hoy = todayInLima();
+
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-6 md:gap-8">
+      <EncabezadoPagina titulo="Gestión de Jornadas" descripcion="Programa, edita y revisa las jornadas de voluntariado." />
+
       {loadError && <LoadError message={loadError} onRetry={fetchData} />}
 
-      {/* FORMULARIO DE CREACIÓN */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-pq-cream-dark shadow-sm">
-        <h2 className="text-2xl font-black text-pq-teal-deep mb-6 flex items-center gap-2">
-          Programar Nueva Jornada <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
-        </h2>
+      {fetching ? (
+        <div className="flex justify-center p-10"><p className="text-pq-teal-dark font-bold animate-pulse">Cargando jornadas...</p></div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+          <button
+            type="button"
+            onClick={() => setCreando(true)}
+            disabled={locations.length === 0}
+            title={locations.length === 0 ? 'Primero registra un lugar activo' : ''}
+            className="min-h-[200px] sm:min-h-[360px] p-6 border-2 border-dashed border-pq-border rounded-[20px] bg-pq-teal-50/50 hover:bg-pq-teal-50 transition-colors flex flex-col items-center justify-center gap-3 text-center disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span className="w-14 h-14 rounded-full bg-pq-teal text-white flex items-center justify-center"><Plus size={28} aria-hidden="true" /></span>
+            <span className="font-display text-xl font-bold text-pq-teal-deep">Crear nueva jornada</span>
+            <span className="text-sm text-pq-ink-muted">Programa un nuevo evento para la comunidad.</span>
+          </button>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {campos(formData, handleChange)}
+          {ordenarJornadas(jornadas, hoy).map((jor) => {
+            const nAsistencias = asistenciasPorJornada[jor.id] || 0;
+            const estado = estadoJornada(jor.date, hoy);
+            const abierto = menuAbierto === jor.id;
 
-          <div className="flex justify-end mt-6 pt-4 border-t-2 border-dashed border-pq-cream-dark">
-            <button type="submit" disabled={loading || locations.length === 0} className="bg-pq-teal hover:bg-pq-teal-dark text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-pq-teal/30 hover:-translate-y-0.5 transition-all duration-200">
-              {loading ? 'Guardando...' : 'Crear Jornada'}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* LISTA DE JORNADAS */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-pq-cream-dark shadow-sm">
-        <h2 className="text-2xl font-black text-pq-teal-deep mb-6 flex items-center gap-2">
-          Jornadas Programadas <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
-        </h2>
-
-        {fetching ? (
-          <div className="flex justify-center p-10"><p className="text-pq-teal-dark font-bold animate-pulse">Cargando jornadas...</p></div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {jornadas.map((jor) => {
-              const nAsistencias = asistenciasPorJornada[jor.id] || 0;
-
-              return (
-              <div key={jor.id} className="border-2 border-pq-cream-dark rounded-2xl p-5 flex flex-col xl:flex-row gap-5 justify-between items-start xl:items-center bg-white hover:border-pq-teal/40 hover:shadow-md transition-all">
-
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="bg-pq-teal/10 text-pq-teal-dark text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border border-pq-teal/20 flex items-center gap-1">
-                      <Activity size={12}/> {jor.type}
-                    </span>
-                    {jor.locations?.action_line && (
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border flex items-center gap-1 ${getActionLineColor(jor.locations.action_line)}`}>
-                        {jor.locations.action_line}
-                      </span>
-                    )}
-                    <h3 className="font-black text-xl text-pq-teal-deep">{jor.name}</h3>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 text-sm text-pq-ink/80 font-medium">
-                    <span className="bg-pq-cream/50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-pq-cream-dark/50">
-                      <MapPin size={16} className="text-pq-teal-dark"/>
-                      {jor.locations?.name} <span className="text-xs text-pq-ink/50 ml-1">({jor.locations?.district})</span>
-                      {jor.locations?.status === 'ARCHIVADO' && <span className="text-[10px] font-black uppercase text-pq-ink/50 ml-1">archivado</span>}
-                    </span>
-                    <span className="bg-pq-cream/50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-pq-cream-dark/50">
-                      <UserSquare2 size={16} className="text-pq-teal-dark"/>
-                      {jor.coordinador ? `${jor.coordinador.first_name} ${jor.coordinador.last_name}` : 'Sin asignar'}
-                    </span>
-                    {nAsistencias > 0 && (
-                      <span className="bg-pq-marku/10 text-pq-ink/80 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-pq-marku/30">
-                        {nAsistencias} asistencia(s)
-                      </span>
-                    )}
-                  </div>
-
-                  {jor.description && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => toggleExpand(jor.id)}
-                        className="flex items-center gap-1.5 mt-3 text-xs font-black text-pq-teal-dark uppercase tracking-wider hover:text-pq-teal transition-colors"
-                      >
-                        <FileText size={14} />
-                        {expandedId === jor.id ? 'Ocultar actividades' : 'Ver actividades'}
-                        {expandedId === jor.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </button>
-
-                      {expandedId === jor.id && (
-                        <p className="mt-2 text-sm text-pq-ink/70 font-medium bg-pq-cream/30 p-3 rounded-xl border border-pq-cream-dark/50">
-                          {jor.description}
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3 w-full xl:w-auto">
-                  <div className="flex flex-wrap gap-4 text-sm bg-pq-cream/30 p-3 rounded-xl border border-pq-cream-dark flex-1 xl:flex-none">
-                    <div>
-                      <p className="text-xs font-bold text-pq-teal-dark uppercase tracking-wider mb-0.5 flex items-center gap-1"><Calendar size={14}/> Fecha</p>
-                      <p className="font-black text-pq-teal-deep">{jor.date.split('-').reverse().join('/')}</p>
-                    </div>
-                    <div className="border-l-2 border-pq-cream-dark pl-4">
-                      <p className="text-xs font-bold text-pq-teal-dark uppercase tracking-wider mb-0.5 flex items-center gap-1"><Clock size={14}/> Horario</p>
-                      <p className="font-black text-pq-teal-deep">{jor.start_time.slice(0,5)} - {jor.end_time.slice(0,5)}</p>
-                    </div>
-                    <div className="border-l-2 border-pq-cream-dark pl-4 pr-2">
-                      <p className="text-xs font-bold text-pq-teal-dark uppercase tracking-wider mb-0.5">Horas</p>
-                      <p className="font-black text-pq-marku text-lg leading-none">{jor.valid_hours}h</p>
-                    </div>
-                  </div>
-                  <div className="flex xl:flex-col gap-2">
-                    <button type="button" onClick={() => openEdit(jor)} title="Editar jornada" className="text-pq-teal-dark hover:text-pq-teal transition-colors p-1">
-                      <Pencil size={18} />
-                    </button>
+            return (
+              <article key={jor.id} className="flex flex-col p-3 rounded-[20px] bg-white shadow-pq-card">
+                <ImagenJornada alto="h-[150px]" />
+                <div className="flex flex-col gap-2.5 px-1.5 pt-3.5 pb-1">
+                  <div className="relative flex items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-[0.04em] ${ESTILO_ESTADO[estado]}`}>{estado}</span>
+                    <ChipLinea linea={jor.locations?.action_line} />
                     <button
                       type="button"
-                      onClick={() => setBorrando(jor)}
-                      disabled={nAsistencias > 0}
-                      title={nAsistencias > 0 ? 'Tiene asistencias registradas: no se puede borrar' : 'Borrar jornada'}
-                      className="text-red-600 hover:text-red-700 transition-colors p-1 disabled:text-pq-ink/25 disabled:cursor-not-allowed"
+                      onClick={() => setMenuAbierto(abierto ? null : jor.id)}
+                      aria-label="Opciones de la jornada"
+                      aria-haspopup="menu"
+                      aria-expanded={abierto}
+                      className={`ml-auto w-11 h-11 rounded-xl text-pq-teal-deep flex items-center justify-center transition-colors ${abierto ? 'bg-pq-teal-50' : 'hover:bg-pq-teal-50'}`}
                     >
-                      <Trash2 size={18} />
+                      <EllipsisVertical size={20} />
                     </button>
+                    {abierto && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setMenuAbierto(null)} aria-hidden="true" />
+                        <div role="menu" className="absolute top-12 right-0 z-20 w-48 p-1.5 rounded-xl bg-white border border-pq-cream-dark shadow-[0_8px_24px_rgba(31,43,42,0.16)] flex flex-col">
+                          <button type="button" role="menuitem" onClick={() => { setMenuAbierto(null); onVerDetalle(jor.id); }} className="flex items-center gap-2.5 min-h-11 px-3 rounded-lg text-sm font-medium text-pq-ink hover:bg-pq-cream text-left">
+                            <Eye size={18} aria-hidden="true" />Ver detalle
+                          </button>
+                          <button type="button" role="menuitem" onClick={() => { setMenuAbierto(null); openEdit(jor); }} className="flex items-center gap-2.5 min-h-11 px-3 rounded-lg text-sm font-medium text-pq-ink hover:bg-pq-cream text-left">
+                            <Pencil size={18} aria-hidden="true" />Editar
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => { setMenuAbierto(null); setBorrando(jor); }}
+                            disabled={nAsistencias > 0}
+                            title={nAsistencias > 0 ? 'Tiene asistencias registradas: no se puede borrar' : ''}
+                            className="flex items-center gap-2.5 min-h-11 px-3 rounded-lg text-sm font-medium text-pq-error hover:bg-pq-error-50 text-left disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                          >
+                            <Trash2 size={18} aria-hidden="true" />Borrar
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <h3 className="text-[19px] font-bold leading-snug text-pq-ink">{jor.name}</h3>
+                  <span className="flex items-center gap-1.5 text-sm text-pq-ink-muted">
+                    <MapPin size={16} className="shrink-0" aria-hidden="true" />
+                    {jor.locations?.name}, {jor.locations?.district}
+                    {jor.locations?.status === 'ARCHIVADO' && <span className="text-[10px] font-bold uppercase">(archivado)</span>}
+                  </span>
+                  <div className="flex mt-1 border border-pq-cream-dark rounded-xl">
+                    <div className="flex-1 px-3 py-2.5 flex flex-col gap-0.5">
+                      <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-pq-ink-muted">Fecha</span>
+                      <span className="text-sm font-semibold">{fechaCorta(jor.date)}</span>
+                    </div>
+                    <div className="w-px bg-pq-cream-dark" />
+                    <div className="flex-1 px-3 py-2.5 flex flex-col gap-0.5">
+                      <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-pq-ink-muted">Horario</span>
+                      <span className="text-sm font-semibold">{horario(jor)}</span>
+                    </div>
                   </div>
                 </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
 
-              </div>
-              );
-            })}
-
-            {jornadas.length === 0 && (
-              <div className="text-center p-10 bg-pq-cream/50 rounded-2xl border-2 border-dashed border-pq-cream-dark">
-                <p className="text-pq-teal-dark font-medium">Aún no hay jornadas registradas.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      {!fetching && jornadas.length === 0 && (
+        <p className="text-center text-pq-ink-muted">Aún no hay jornadas registradas.</p>
+      )}
 
       {/* CONFIRMAR BORRADO */}
       {borrando && (
@@ -500,26 +485,40 @@ export default function Jornadas() {
         </ConfirmDialog>
       )}
 
-      {/* MODAL DE EDICIÓN DE JORNADA */}
+      {/* MODAL DE ALTA */}
+      {creando && (
+        <form onSubmit={handleSubmit}>
+          <Modal
+            titulo="Programar Nueva Jornada"
+            descripcion={<>Completa los datos; los campos con <span className="text-pq-error">*</span> son obligatorios.</>}
+            onCerrar={() => setCreando(false)}
+            ancho="max-w-[860px]"
+            pie={<>
+              <BotonSecundario onClick={() => setCreando(false)} disabled={loading}>Cancelar</BotonSecundario>
+              <BotonPrimario type="submit" disabled={loading}>{loading ? 'Guardando...' : 'Crear Jornada'}</BotonPrimario>
+            </>}
+          >
+            {campos(formData, handleChange)}
+          </Modal>
+        </form>
+      )}
+
+      {/* MODAL DE EDICIÓN */}
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-pq-ink/60 backdrop-blur-sm px-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl p-8 border border-pq-cream-dark my-8 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-black text-pq-teal-deep mb-6 flex items-center gap-2">
-              Editar Jornada <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
-            </h3>
-
-            <form onSubmit={handleUpdate} className="space-y-5">
-              {campos(editForm, handleEditChange, { actual: editing, bloqueado: (asistenciasPorJornada[editing.id] || 0) > 0 })}
-
-              <div className="flex justify-end gap-3 mt-8 pt-4 border-t-2 border-dashed border-pq-cream-dark">
-                <button type="button" onClick={() => setEditing(null)} className="px-5 py-2.5 text-pq-ink/70 font-bold hover:bg-pq-cream rounded-xl transition-colors">Cancelar</button>
-                <button type="submit" disabled={savingEdit} className="px-5 py-2.5 bg-pq-teal text-white font-bold rounded-xl hover:bg-pq-teal-dark shadow-lg shadow-pq-teal/30 transition-all">
-                  {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <form onSubmit={handleUpdate}>
+          <Modal
+            titulo="Editar Jornada"
+            descripcion={<>Completa los datos; los campos con <span className="text-pq-error">*</span> son obligatorios.</>}
+            onCerrar={() => setEditing(null)}
+            ancho="max-w-[860px]"
+            pie={<>
+              <BotonSecundario onClick={() => setEditing(null)} disabled={savingEdit}>Cancelar</BotonSecundario>
+              <BotonPrimario type="submit" disabled={savingEdit}>{savingEdit ? 'Guardando...' : 'Guardar Cambios'}</BotonPrimario>
+            </>}
+          >
+            {campos(editForm, handleEditChange, { actual: editing, bloqueado: (asistenciasPorJornada[editing.id] || 0) > 0 })}
+          </Modal>
+        </form>
       )}
     </div>
   );

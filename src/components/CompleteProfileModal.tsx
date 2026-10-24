@@ -116,7 +116,7 @@ export default function CompleteProfileModal({ userId, missingFields, onComplete
     setLoading(false);
   };
 
-  const inputClass = "w-full px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:bg-white focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none transition-all font-medium text-pq-ink";
+  const inputClass = "w-full px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none transition-all font-medium text-pq-ink";
   const labelClass = "block text-sm font-bold text-pq-teal-dark mb-2";
 
   return (
@@ -186,9 +186,9 @@ export default function CompleteProfileModal({ userId, missingFields, onComplete
 
             {falta('location') && (
               <div className="flex flex-col justify-end">
-                <label className={labelClass}>Ubicación Actual <span className="text-red-500">*</span></label>
+                <label className={labelClass}>Ubicación Actual <span className="text-pq-error">*</span></label>
                 <button type="button" onClick={handleGetLocation} className={`w-full py-3 px-4 rounded-xl font-bold transition-all border-2 ${
-                  lat ? 'bg-pq-teal/10 text-pq-teal-dark border-pq-teal/30 shadow-sm' : 'bg-pq-cream/50 text-pq-ink/60 border-red-200 hover:bg-pq-cream hover:text-pq-teal-dark'
+                  lat ? 'bg-pq-teal/10 text-pq-teal-dark border-pq-teal/30 shadow-sm' : 'bg-pq-cream/50 text-pq-ink/60 border-pq-error/20 hover:bg-pq-cream hover:text-pq-teal-dark'
                 }`}>
                   {locationText}
                 </button>

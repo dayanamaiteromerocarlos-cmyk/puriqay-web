@@ -16,10 +16,10 @@ type MarketingCalendarProps = {
 const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 const STATUS_COLOR: Record<string, string> = {
-  'Pendiente': 'bg-gray-400',
+  'Pendiente': 'bg-pq-ink-muted',
   'En Revisión': 'bg-blue-500',
-  'Observado': 'bg-orange-500',
-  'Publicado': 'bg-green-500',
+  'Observado': 'bg-pq-marku',
+  'Publicado': 'bg-pq-teal',
 };
 
 // Evita los líos de zona horaria de Date#toISOString: siempre formamos

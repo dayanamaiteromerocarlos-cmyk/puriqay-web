@@ -1,20 +1,53 @@
 @import "tailwindcss";
 
+/*
+ * Paleta y estilo de Puriqay, tomados del sistema de diseño "Puriqay" (v1, oct. 2026).
+ * Los nombres pq-* de siempre se conservan; al lado va el token del sistema de diseño
+ * al que corresponden. Reglas: un solo primario por pantalla (pq-teal), amarillo solo
+ * como acento y nunca con texto blanco encima, y brand-500 (pq-brand) nunca en texto pequeño.
+ */
 @theme {
-  /* Paleta Oficial de Puriqay */
-  --color-pq-teal: #118f8c;       /* Verde agua principal */
-  --color-pq-teal-dark: #12726e;  /* Verde agua oscuro (para hovers) */
-  --color-pq-teal-deep: #21514d;  /* Verde oscuro intenso (fondos oscuros) */
-  
-  --color-pq-ink: #212121;        /* Casi negro para textos (más elegante) */
-  
-  --color-pq-cream: #f1e6d5;      /* Crema claro (Fondo principal) */
-  --color-pq-cream-dark: #eae1d3; /* Crema oscurecido (Tarjetas o bordes) */
-  
-  --color-pq-marku: #f5a623;      /* Naranja/Amarillo inspirado en la piel de Marku para acentos/alertas */
+  /* Verde Puriqay */
+  --color-pq-teal-50: #e3f4f2;    /* brand-50: fondos suaves, chips, avisos informativos (texto pq-teal-deep) */
+  --color-pq-brand: #299a94;      /* brand-500: color del logo; barras, iconos, texto de 24px o más */
+  --color-pq-teal: #0e7a77;       /* brand-600: botón primario, enlaces y foco */
+  --color-pq-teal-dark: #0b6663;  /* brand-700: hover y presionado del primario */
+  --color-pq-teal-deep: #0b4d4b;  /* brand-900: títulos, texto sobre pq-teal-50, fondos oscuros */
+
+  /* Texto */
+  --color-pq-ink: #1f2b2a;        /* ink: texto principal */
+  --color-pq-ink-muted: #5b6b69;  /* ink-muted: texto secundario, ayudas y placeholders */
+
+  /* Superficies y bordes */
+  --color-pq-cream: #fdf8ec;      /* surface: fondo de página */
+  --color-pq-cream-dark: #e6dfcf; /* border: bordes decorativos y separadores (no para controles) */
+  --color-pq-border: #768784;     /* border-strong: borde de inputs y controles */
+
+  /* Amarillo Markus */
+  --color-pq-marku: #f5b72f;      /* markus-400: acento puntual (punto del logo, insignias) */
+  --color-pq-marku-50: #fff4d6;   /* markus-50: fondo de avisos de atención */
+  --color-pq-marku-ink: #7a5300;  /* markus-ink: texto sobre pq-marku-50 */
+
+  /* Error */
+  --color-pq-error: #b42318;      /* error: errores y acciones destructivas */
+  --color-pq-error-50: #fdecea;   /* error-50: fondo de avisos de error */
+
+  /* Azul de la paleta de Guillermo: uso escaso */
+  --color-pq-navy: #11274a;       /* navy-800 */
+
+  /* Tipografía: Montserrat en títulos, Poppins en el resto (se cargan en index.html) */
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+
+  /* Sombras */
+  --shadow-pq-card: 0 8px 24px rgba(31, 43, 42, 0.08);   /* shadow-card: tarjetas sobre el fondo */
+  --shadow-pq-focus: 0 0 0 3px rgba(14, 122, 119, 0.35); /* shadow-focus: anillo de foco */
 }
 
-/* Opcional: Para que toda la app use el fondo crema y texto oscuro por defecto */
 body {
-  @apply bg-pq-cream text-pq-ink;
+  @apply bg-pq-cream text-pq-ink font-sans;
+}
+
+h1, h2, h3 {
+  @apply font-display;
 }

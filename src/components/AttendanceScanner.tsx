@@ -135,14 +135,14 @@ export default function AttendanceScanner() {
         <select 
           value={selectedJornada} 
           onChange={(e) => setSelectedJornada(e.target.value)} 
-          className="w-full md:w-1/2 px-4 py-3 border-2 border-pq-cream-dark rounded-xl bg-pq-cream/30 focus:border-pq-teal focus:ring-4 focus:ring-pq-teal/10 outline-none font-bold text-pq-teal-deep transition-all"
+          className="w-full md:w-1/2 px-4 py-3 border-[1.5px] border-pq-border rounded-xl bg-white focus:border-pq-teal focus:shadow-pq-focus outline-none font-bold text-pq-teal-deep transition-all"
         >
           <option value="">-- Elige una jornada --</option>
           {jornadas.map(j => (
             <option key={j.id} value={j.id}>{j.name} ({new Date(j.date + 'T12:00:00').toLocaleDateString('es-PE')})</option>
           ))}
         </select>
-        {jornadas.length === 0 && <p className="text-sm font-bold text-pq-marku mt-3">No hay jornadas programadas para hoy.</p>}
+        {jornadas.length === 0 && <p className="text-sm font-bold text-pq-marku-ink mt-3">No hay jornadas programadas para hoy.</p>}
       </div>
 
       {selectedJornada && (
@@ -156,9 +156,9 @@ export default function AttendanceScanner() {
             
             {message.text && (
               <div className={`w-full p-3 mb-5 rounded-xl font-bold text-center text-sm border-2 ${
-                message.type === 'green' ? 'bg-green-50 text-green-700 border-green-200' :
-                message.type === 'red' ? 'bg-red-50 text-red-700 border-red-200' :
-                message.type === 'yellow' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                message.type === 'green' ? 'bg-pq-teal-50 text-pq-teal-deep border-pq-teal/25' :
+                message.type === 'red' ? 'bg-pq-error-50 text-pq-error border-pq-error/20' :
+                message.type === 'yellow' ? 'bg-pq-marku-50 text-pq-marku-ink border-pq-marku/40' : 'bg-blue-50 text-blue-700 border-blue-200'
               }`}>
                 {message.text}
               </div>
@@ -166,12 +166,12 @@ export default function AttendanceScanner() {
 
             <div className="w-full max-w-[280px] rounded-3xl overflow-hidden border-8 border-pq-cream shadow-inner relative">
               {cameraError ? (
-                <div className="w-full aspect-square bg-red-50 flex flex-col items-center justify-center gap-3 p-4 text-center">
-                  <p className="text-red-700 font-bold text-sm">{cameraError}</p>
+                <div className="w-full aspect-square bg-pq-error-50 flex flex-col items-center justify-center gap-3 p-4 text-center">
+                  <p className="text-pq-error font-bold text-sm">{cameraError}</p>
                   <button
                     type="button"
                     onClick={() => { setCameraError(null); setScannerKey(k => k + 1); }}
-                    className="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors"
+                    className="px-4 py-2 bg-pq-error text-white text-sm font-bold rounded-xl hover:bg-pq-error/90 transition-colors"
                   >
                     Reintentar
                   </button>
@@ -205,14 +205,14 @@ export default function AttendanceScanner() {
               </div>
               <div className="bg-white p-5 rounded-2xl border-2 border-pq-cream-dark shadow-sm text-center border-t-4 border-t-pq-marku">
                 <p className="text-pq-ink/60 text-[10px] font-black uppercase tracking-widest">Externos</p>
-                <p className="text-2xl font-black text-pq-marku mt-1">{stats.externos}</p>
+                <p className="text-2xl font-black text-pq-marku-ink mt-1">{stats.externos}</p>
               </div>
             </div>
 
             <div className="bg-white rounded-3xl border-2 border-pq-cream-dark shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: '420px' }}>
               <div className="p-5 border-b-2 border-pq-cream-dark bg-pq-cream/30 flex justify-between items-center">
                 <h3 className="font-black text-pq-teal-deep flex items-center gap-2">
-                  Últimos Registros <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full animate-pulse">EN VIVO</span>
+                  Últimos Registros <span className="text-xs bg-pq-error text-white px-2 py-0.5 rounded-full animate-pulse">EN VIVO</span>
                 </h3>
                 {loadingStats && <span className="text-[10px] text-pq-teal-dark font-black uppercase tracking-wider animate-pulse">Actualizando...</span>}
               </div>
@@ -233,7 +233,7 @@ export default function AttendanceScanner() {
                         </td>
                         <td className="p-4 border-b border-pq-cream-dark">
                           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            asist.profiles?.role === 'VOLUNTARIO' ? 'bg-pq-marku/10 text-orange-600 border border-pq-marku/20' : 'bg-pq-teal/10 text-pq-teal-dark border border-pq-teal/20'
+                            asist.profiles?.role === 'VOLUNTARIO' ? 'bg-pq-marku/10 text-pq-marku-ink border border-pq-marku/20' : 'bg-pq-teal/10 text-pq-teal-dark border border-pq-teal/20'
                           }`}>
                             {asist.profiles?.role === 'VOLUNTARIO' ? 'Externo' : 'Interno'}
                           </span>

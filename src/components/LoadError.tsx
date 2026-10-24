@@ -1,4 +1,4 @@
-import { AlertCircle } from 'lucide-react';
+import { CloudOff, RefreshCw } from 'lucide-react';
 
 // Convierte el mensaje técnico de una consulta fallida en algo que entienda quien usa la
 // web. Lo desconocido se muestra tal cual (y siempre queda en la consola del navegador).
@@ -20,18 +20,20 @@ export default function LoadError({ message, onRetry }: { message: string; onRet
   if (tecnico) console.error('Error de carga:', message);
 
   return (
-    <div className="bg-red-50 border border-red-100 text-red-700 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-3">
-      <AlertCircle size={22} className="shrink-0" />
-      <div className="flex-1">
-        <p className="font-bold text-sm">No pudimos cargar los datos.</p>
-        <p className={`mt-1 break-words ${tecnico ? 'text-xs font-mono' : 'text-xs font-medium'}`}>{texto}</p>
+    <div role="alert" className="p-5 md:p-6 rounded-2xl bg-white border-[1.5px] border-pq-error/25 flex flex-wrap items-center gap-4">
+      <span className="w-12 h-12 shrink-0 rounded-full bg-pq-error-50 text-pq-error flex items-center justify-center">
+        <CloudOff size={24} aria-hidden="true" />
+      </span>
+      <div className="flex-[1_1_260px] min-w-0">
+        <p className="font-display text-[17px] font-bold text-pq-ink">No pudimos cargar los datos</p>
+        <p className={`mt-1 text-pq-ink-muted break-words ${tecnico ? 'text-xs font-mono' : 'text-sm'}`}>{texto}</p>
       </div>
       <button
         type="button"
         onClick={onRetry}
-        className="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors"
+        className="inline-flex items-center justify-center gap-2 min-h-11 px-5 py-2.5 rounded-xl border-[1.5px] border-pq-error bg-white text-pq-error text-sm font-semibold hover:bg-pq-error-50 transition-colors w-full sm:w-auto"
       >
-        Reintentar
+        <RefreshCw size={16} aria-hidden="true" />Reintentar
       </button>
     </div>
   );
