@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { MailCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { PATTERNS, TITLES, birthDateLimits } from '../lib/validations';
+import { PATTERNS, TITLES, birthDateLimits, limpiarNombre } from '../lib/validations';
 import { traducirErrorAuth } from '../lib/authErrors';
 import FondoParticulas from './FondoParticulas';
 
@@ -39,8 +39,8 @@ export default function Register() {
       password: formData.password,
       options: {
         data: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
+          first_name: limpiarNombre(formData.firstName),
+          last_name: limpiarNombre(formData.lastName),
           birth_date: formData.birthDate,
           phone: formData.phone,
         },

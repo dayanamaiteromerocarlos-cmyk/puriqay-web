@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { PATTERNS, TITLES } from '../lib/validations';
+import { PATTERNS, TITLES, limpiarNombre } from '../lib/validations';
 
 type CompleteProfileModalProps = {
   userId: string;
@@ -87,8 +87,8 @@ export default function CompleteProfileModal({ userId, missingFields, onComplete
     const payload: Record<string, string | number | null> = {};
     if (falta('document_id')) payload.document_id = formData.documentId;
     if (falta('emergency_phone')) payload.emergency_phone = formData.emergencyPhone;
-    if (falta('study_center')) payload.study_center = formData.studyCenter === 'Otro' ? formData.otherStudyCenter : formData.studyCenter;
-    if (falta('career')) payload.career = formData.career;
+    if (falta('study_center')) payload.study_center = formData.studyCenter === 'Otro' ? limpiarNombre(formData.otherStudyCenter) : formData.studyCenter;
+    if (falta('career')) payload.career = limpiarNombre(formData.career);
     if (falta('address')) payload.address = formData.address;
     if (falta('medical_conditions')) payload.medical_conditions = formData.medicalConditions;
     if (falta('shirt_size')) payload.shirt_size = formData.shirtSize;

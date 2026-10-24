@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import LoadError from './LoadError';
-import { PATTERNS, TITLES, birthDateLimits } from '../lib/validations';
+import { PATTERNS, TITLES, birthDateLimits, limpiarNombre } from '../lib/validations';
 import { MapPin } from 'lucide-react';
 
 type MiPerfilProps = {
@@ -83,8 +83,9 @@ export default function MiPerfil({ userId, onSaved }: MiPerfilProps) {
     e.preventDefault();
     setSaving(true);
     const payload = Object.fromEntries(EDITABLES.map(c => [c, form[c].trim() || null]));
+    for (const c of ['first_name', 'last_name', 'career'] as const) payload[c] = limpiarNombre(form[c]) || null;
     if (await guardar(payload, 'Tus datos se guardaron.')) {
-      onSaved(form.first_name.trim(), form.last_name.trim());
+      onSaved(limpiarNombre(form.first_name), limpiarNombre(form.last_name));
       fetchPerfil();
     }
     setSaving(false);

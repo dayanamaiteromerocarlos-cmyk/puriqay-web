@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { MapPin, Phone, User, Map, Info, ChevronDown, ChevronUp, Pencil, Home, Flag, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DISTRITOS_LIMA, DISTRITOS_CALLAO, ACTION_LINES } from '../lib/catalogs';
-import { PATTERNS, TITLES } from '../lib/validations';
+import { PATTERNS, TITLES, limpiarNombre } from '../lib/validations';
 import { esBorradoBloqueado } from '../lib/dbErrors';
 import ConfirmDialog from './ConfirmDialog';
 import { ChipLinea, EncabezadoPagina, Modal, BotonPrimario, BotonSecundario, inputClass, labelClass } from './JornadaUI';
@@ -140,7 +140,7 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
 
     const { data, error } = await supabase
       .from('locations')
-      .update(editForm)
+      .update({ ...editForm, manager_name: limpiarNombre(editForm.manager_name) })
       .eq('id', editingId)
       .select('id'); // .select() nos devuelve las filas realmente afectadas
 
@@ -161,7 +161,7 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.from('locations').insert([formData]);
+    const { error } = await supabase.from('locations').insert([{ ...formData, manager_name: limpiarNombre(formData.manager_name) }]);
 
     if (error) {
       toast.error('Error al registrar el lugar: ' + error.message);

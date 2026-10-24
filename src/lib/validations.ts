@@ -18,7 +18,10 @@ const LETRAS = "A-Za-zÁÉÍÓÚÜÑáéíóúüñ";
 
 export const PATTERNS = {
   // Solo letras y espacios; permite nombres compuestos ("Ana María", "D'Angelo", "Vargas-Llosa").
-  soloLetras: `[${LETRAS}]+(?:[ '\\-][${LETRAS}]+)*`,
+  // Tolera espacios de más al inicio, al final o entre palabras (un espacio final al
+  // pegar o autocompletar no tenía salida); limpiarNombre() los quita al guardar.
+  // El guion va dentro de [...]: fuera de una clase, "\-" no compila con la bandera `v`.
+  soloLetras: ` *[${LETRAS}]+(?:(?: +|['\\-])[${LETRAS}]+)* *`,
 
   // DNI peruano: exactamente 8 dígitos.
   dni: "[0-9]{8}",
@@ -40,6 +43,10 @@ export const TITLES = {
   direccion: 'La dirección debe combinar letras y números (ej. Av. Los Olivos 123).',
   password: 'Mínimo 10 caracteres, con mayúscula, minúscula, número y símbolo (ej. Puriqay2026!).',
 } as const;
+
+// Quita los espacios de los extremos y deja uno solo entre palabras, para guardar
+// "Anthony Melgarejo" aunque se haya escrito "Anthony  Melgarejo ".
+export const limpiarNombre = (valor: string) => valor.trim().replace(/\s+/g, ' ');
 
 // Límites para la fecha de nacimiento: entre 15 y 100 años de edad.
 // Se arma la clave con componentes locales para evitar el corrimiento de día de toISOString().
