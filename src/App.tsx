@@ -1,12 +1,19 @@
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'; // <-- 1. Importamos el Toaster
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import Register from './components/Register';
-import ForgotPassword from './components/ForgotPassword';
-import ResetPassword from './components/ResetPassword';
+
+// Solo el login va en la descarga inicial; el resto se pide al entrar a su ruta.
+const cargarDashboard = () => import('./components/Dashboard');
+const Dashboard = lazy(cargarDashboard);
+const Register = lazy(() => import('./components/Register'));
+const ForgotPassword = lazy(() => import('./components/ForgotPassword'));
+const ResetPassword = lazy(() => import('./components/ResetPassword'));
 
 function App() {
+  // Mientras la persona escribe su contraseña, el panel ya se va descargando.
+  useEffect(() => { cargarDashboard(); }, []);
+
   return (
     <>
       {/* 2. El Toaster maestro que controla los pop-ups en toda la app */}
@@ -37,19 +44,21 @@ function App() {
 
       {/* 3. Tus rutas intactas */}
       <BrowserRouter>
-        <Routes>
-          {/* Rutas Públicas */}
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+        <Suspense fallback={null}>
+          <Routes>
+            {/* Rutas Públicas */}
+            <Route path="/" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           
-          {/* Ruta Interna */}
-          <Route path="/dashboard" element={<Dashboard />} />
+            {/* Ruta Interna */}
+            <Route path="/dashboard" element={<Dashboard />} />
           
-          {/* Redirección por defecto */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Redirección por defecto */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </>
   );

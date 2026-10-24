@@ -39,7 +39,9 @@ export default function JornadaDetalle({ jornadaId, esInterno, volverA, onVolver
   const loadData = async () => {
     setLoading(true);
     setLoadError(null);
-    const { data: { user } } = await supabase.auth.getUser();
+    // getSession lee la sesión guardada sin ir al servidor; la base valida el token en cada consulta.
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) {
       // Sin sesión no hay nada que cargar; Dashboard se encarga de mandar al login.
       setLoading(false);
@@ -47,16 +49,16 @@ export default function JornadaDetalle({ jornadaId, esInterno, volverA, onVolver
     }
     setUserId(user.id);
 
-    const { data: jor, error: jorError } = await supabase
-      .from('jornadas')
-      .select('id, name, date, start_time, end_time, type, description, location_id')
-      .eq('id', jornadaId)
-      .maybeSingle();
-
-    // El nombre del coordinador sale de nombre_coordinador(): los voluntarios no
-    // pueden leer perfiles de otras personas.
-    const [lug, coord, ins] = await Promise.all([
-      fetchLugaresPublicos([jor?.location_id ?? null]),
+    // Todo en paralelo; el lugar sale del catálogo completo de lugares. El nombre
+    // del coordinador sale de nombre_coordinador(): los voluntarios no pueden leer
+    // perfiles de otras personas.
+    const [{ data: jor, error: jorError }, lug, coord, ins] = await Promise.all([
+      supabase
+        .from('jornadas')
+        .select('id, name, date, start_time, end_time, type, description, location_id')
+        .eq('id', jornadaId)
+        .maybeSingle(),
+      fetchLugaresPublicos(),
       supabase.rpc('nombre_coordinador', { p_jornada: jornadaId }),
       supabase.from('inscripciones').select('id, status, justification_type, justification_text')
         .eq('jornada_id', jornadaId).eq('volunteer_id', user.id).maybeSingle(),

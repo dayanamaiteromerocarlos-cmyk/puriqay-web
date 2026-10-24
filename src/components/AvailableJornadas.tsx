@@ -21,14 +21,17 @@ export default function AvailableJornadas({ onVerDetalle }: { onVerDetalle: (jor
     setLoading(true);
     setLoadError(null);
 
-    const { data: jorData, error: jorError } = await supabase
-      .from('jornadas')
-      .select('id, name, date, start_time, end_time, location_id')
-      .gte('date', todayInLima())
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true });
-
-    const { lugares: lug, error: lugError } = await fetchLugaresPublicos((jorData || []).map(j => j.location_id));
+    // Jornadas y lugares en paralelo: se piden todos los lugares (catálogo corto)
+    // para no esperar a las jornadas antes de pedirlos.
+    const [{ data: jorData, error: jorError }, { lugares: lug, error: lugError }] = await Promise.all([
+      supabase
+        .from('jornadas')
+        .select('id, name, date, start_time, end_time, location_id')
+        .gte('date', todayInLima())
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true }),
+      fetchLugaresPublicos(),
+    ]);
 
     setJornadas(jorData || []);
     setLugares(lug);

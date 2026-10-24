@@ -70,32 +70,38 @@ export type EntradaHistorial = {
 //   Justificó = dijo NO ASISTIRÁ a una jornada que ya pasó.
 // Se filtra por volunteer_id aunque RLS ya lo limite: el equipo interno puede leer
 // asistencias e inscripciones de otras personas.
+//
+// Todo va en un solo viaje en paralelo: las jornadas vienen incrustadas en cada
+// fila y se piden todos los lugares (es un catálogo corto). Devuelve también esos
+// lugares para que quien llame no tenga que volver a pedirlos.
+const JORNADA_HISTORIAL = 'jornadas(id, name, date, valid_hours, location_id)';
+
 export async function fetchHistorial(userId: string) {
   const hoy = todayInLima();
-  const [asis, insc] = await Promise.all([
-    supabase.from('asistencias').select('jornada_id').eq('volunteer_id', userId),
-    supabase.from('inscripciones').select('jornada_id, status').eq('volunteer_id', userId),
+  const [asis, insc, lug] = await Promise.all([
+    supabase.from('asistencias').select(`jornada_id, ${JORNADA_HISTORIAL}`).eq('volunteer_id', userId),
+    supabase.from('inscripciones').select(`jornada_id, status, ${JORNADA_HISTORIAL}`).eq('volunteer_id', userId),
+    fetchLugaresPublicos(),
   ]);
-  const error = asis.error || insc.error;
-  if (error) return { entradas: [] as EntradaHistorial[], error };
+  const { lugares } = lug;
+  const error = asis.error || insc.error || lug.error;
+  if (error) return { entradas: [] as EntradaHistorial[], lugares, error };
 
-  const asistio = new Set((asis.data || []).map(a => a.jornada_id));
+  type JornadaHistorial = EntradaHistorial['jornada'];
+  const porId: Record<string, JornadaHistorial> = {};
+  const asistio = new Set<string>();
   const respuesta: Record<string, string> = {};
-  (insc.data || []).forEach(i => { respuesta[i.jornada_id] = i.status; });
-
-  const ids = [...new Set([...asistio, ...Object.keys(respuesta)])];
-  if (ids.length === 0) return { entradas: [], error: null };
-
-  const { data: jorData, error: jorError } = await supabase
-    .from('jornadas')
-    .select('id, name, date, valid_hours, location_id')
-    .in('id', ids);
-  if (jorError) return { entradas: [], error: jorError };
-
-  const { lugares, error: lugError } = await fetchLugaresPublicos((jorData || []).map(j => j.location_id));
+  (asis.data || []).forEach(a => {
+    asistio.add(a.jornada_id);
+    if (a.jornadas) porId[a.jornada_id] = a.jornadas as unknown as JornadaHistorial;
+  });
+  (insc.data || []).forEach(i => {
+    respuesta[i.jornada_id] = i.status;
+    if (i.jornadas) porId[i.jornada_id] = i.jornadas as unknown as JornadaHistorial;
+  });
 
   const entradas: EntradaHistorial[] = [];
-  (jorData || []).forEach(j => {
+  Object.values(porId).forEach(j => {
     let estado: EstadoAsistencia | null = null;
     if (asistio.has(j.id)) estado = 'Asistió';
     else if (j.date < hoy && respuesta[j.id] === 'ASISTIRÁ') estado = 'Faltó';
@@ -103,7 +109,7 @@ export async function fetchHistorial(userId: string) {
     if (estado) entradas.push({ jornada: j, lugar: lugares[j.location_id ?? ''] || null, estado });
   });
   entradas.sort((a, b) => b.jornada.date.localeCompare(a.jornada.date));
-  return { entradas, error: lugError };
+  return { entradas, lugares, error: null };
 }
 
 export const horasDe = (entradas: EntradaHistorial[]) =>

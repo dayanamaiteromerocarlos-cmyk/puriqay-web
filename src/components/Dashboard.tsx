@@ -1,20 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
-import VolunteerList from './VolunteerList';
-import Locations from './Locations';
 import QRCode from 'react-qr-code';
-import Jornadas from './Jornadas';
-import AttendanceScanner from './AttendanceScanner';
 import AvailableJornadas from './AvailableJornadas';
-import MarketingBoard from './MarketingBoard';
-import CompleteProfileModal from './CompleteProfileModal';
-import MiPerfil from './MiPerfil';
 import Inicio from './Inicio';
 import MisAsistencias from './MisAsistencias';
 import JornadaDetalle from './JornadaDetalle';
 import { permisos } from '../lib/permisos';
+
+// Las pestañas que no son de todos se descargan solo al abrirlas, para que el
+// voluntario no cargue el escáner, el tablero de marketing, etc.
+const VolunteerList = lazy(() => import('./VolunteerList'));
+const Locations = lazy(() => import('./Locations'));
+const Jornadas = lazy(() => import('./Jornadas'));
+const AttendanceScanner = lazy(() => import('./AttendanceScanner'));
+const MarketingBoard = lazy(() => import('./MarketingBoard'));
+const CompleteProfileModal = lazy(() => import('./CompleteProfileModal'));
+const MiPerfil = lazy(() => import('./MiPerfil'));
+
+const cargandoPestana = (
+  <div className="flex justify-center p-10"><p className="text-pq-teal-dark font-medium animate-pulse">Cargando...</p></div>
+);
 import { Users, QrCode, LogOut, ChevronLeft, Menu, X, House, ClipboardCheck, CalendarDays, CalendarCheck, MapPin, Camera, Megaphone, UserCircle } from 'lucide-react';
 
 // Campos "avanzados" que Register.tsx ya no pide en la fase 1 (fricción cero).
@@ -69,7 +76,10 @@ export default function Dashboard() {
   }, [navigate]);
 
   const checkUserRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    // getSession lee la sesión guardada sin ir al servidor; la base valida el token
+    // en cada consulta, así que no hace falta getUser() (un viaje más).
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
 
     if (!user) {
       navigate('/');
@@ -235,7 +245,9 @@ export default function Dashboard() {
 
       {/* BARRERA DE PERFIL INCOMPLETO: bloquea el uso de la plataforma hasta completarlo */}
       {missingProfileFields.length > 0 && userId && (
-        <CompleteProfileModal userId={userId} missingFields={missingProfileFields} onCompleted={() => setMissingProfileFields([])} />
+        <Suspense fallback={null}>
+          <CompleteProfileModal userId={userId} missingFields={missingProfileFields} onCompleted={() => setMissingProfileFields([])} />
+        </Suspense>
       )}
 
       {/* MENÚ LATERAL DE ESCRITORIO */}
@@ -288,6 +300,7 @@ export default function Dashboard() {
 
         {/* ÁREA DE SCROLL DE LOS MÓDULOS */}
         <div className="flex-1 overflow-y-auto px-4 py-6 md:p-10">
+          <Suspense fallback={cargandoPestana}>
 
           {detalle && (
             <div className="max-w-[1000px] mx-auto">
@@ -378,6 +391,7 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+          </Suspense>
         </div>
       </div>
     </div>

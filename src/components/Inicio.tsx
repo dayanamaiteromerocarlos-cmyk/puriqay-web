@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { todayInLima } from '../lib/dates';
-import { fetchHistorial, fetchLugaresPublicos, haceDias, horario, horasDe, formatoHoras, type EntradaHistorial, type LugarPublico } from '../lib/jornadas';
+import { fetchHistorial, haceDias, horario, horasDe, formatoHoras, type EntradaHistorial, type LugarPublico } from '../lib/jornadas';
 import { ChipLinea, BotonSecundario } from './JornadaUI';
 import { EstadoChip } from './MisAsistencias';
 import LoadError from './LoadError';
@@ -43,12 +43,11 @@ export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Pro
         .order('start_time', { ascending: true })
         .limit(PROXIMAS_EN_INICIO),
     ]);
-    const { lugares: lug, error: lugError } = await fetchLugaresPublicos((jor.data || []).map(j => j.location_id));
 
     setHistorial(hist.entradas);
     setProximas(jor.data || []);
-    setLugares(lug);
-    const failure = hist.error || jor.error || lugError;
+    setLugares(hist.lugares);
+    const failure = hist.error || jor.error;
     setLoadError(failure ? failure.message : null);
     setLoading(false);
   };
