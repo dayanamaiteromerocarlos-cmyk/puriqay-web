@@ -1,8 +1,9 @@
 // Apertura temática de la app instalada (Halloween + Canción Criolla), al estilo de la
 // de Pinterest. Sigue a la pantalla de inicio que dibuja el sistema (fondo blanco del
-// manifest con el ícono): los bordes del blanco se tiñen de naranja y el ícono crece con
-// un halo; después salen murciélagos desde detrás de él y dos maracas se agitan encima; al
-// final fondo e ícono se desvanecen y los murciélagos siguen un instante sobre la app.
+// manifest con el ícono): un naranja se extiende desde el centro hasta teñir los bordes y
+// el ícono crece con un halo; después salen murciélagos desde detrás de él y dos maracas
+// se agitan encima; al final fondo e ícono se desvanecen y los murciélagos siguen un
+// instante sobre la app.
 // El recurso completo, con otros temas y una página de prueba, está en
 // recursos/apertura-tematica/.
 import './aperturaTematica.css';
@@ -32,11 +33,11 @@ const MURCIELAGOS: [number, number, number, number][] = [
 
 // Momentos de la animación en ms.
 const T = {
-  tema: 350,        // los bordes empiezan a tomar el naranja
-  murcielagos: 750, // salen los murciélagos, ya con el naranja puesto
-  maracas: 850,     // salen las maracas
-  salida: 2100,     // fondo e ícono se desvanecen
-  fin: 2750,        // se quita la apertura
+  tema: 350,        // el naranja empieza a extenderse desde el centro
+  murcielagos: 900, // salen los murciélagos, con el naranja ya en los bordes
+  maracas: 1000,    // salen las maracas
+  salida: 2200,     // fondo e ícono se desvanecen
+  fin: 2850,        // se quita la apertura
 };
 
 const ALA = 'M52 22C60 10 75 6 96 12C88 16 86 22 88 28C82 25 77 26 74 31C70 27 64 27 60 31C58 27 55 26 52 28Z';
@@ -121,14 +122,17 @@ export function mostrarApertura(): Promise<void> {
     const terminar = (ms: number) => setTimeout(() => { raiz.remove(); resolver(); }, ms);
 
     if (reducir) {
+      degradado.style.setProperty('--pq-ap-r', '130%');
       anim(degradado, [{ opacity: 0 }, { opacity: 1 }], { delay: 200, duration: 300 });
       anim(raiz, [{ opacity: 1 }, { opacity: 0 }], { delay: 900, duration: 300 });
       terminar(1250);
       return;
     }
 
-    // 1. El blanco pasa al degradado; el ícono crece un poco y aparece el halo.
-    anim(degradado, [{ opacity: 0 }, { opacity: 1 }], { delay: T.tema, duration: 400, easing: 'ease-out' });
+    // 1. El naranja se extiende desde el centro hasta los bordes; el ícono crece un poco
+    //    y aparece el halo.
+    anim(degradado, [{ '--pq-ap-r': '0%' }, { '--pq-ap-r': '130%' }],
+      { delay: T.tema, duration: T.murcielagos - T.tema, easing: 'ease-out' });
     anim(ico, [{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }],
       { delay: T.tema, duration: 500, easing: 'cubic-bezier(.34,1.56,.64,1)' });
     anim(halo, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1)' }],

@@ -15,9 +15,19 @@
 .pq-ap-base {
   background: var(--pq-ap-base);
 }
+/* El naranja se extiende desde el centro hacia afuera: una máscara circular de borde
+   suave cuyo radio (--pq-ap-r) anima aperturaTematica.ts. Registrar la propiedad es lo
+   que permite animarla; donde no se pueda, el naranja aparece de golpe. */
+@property --pq-ap-r {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
 .pq-ap-tema {
   background: var(--pq-ap-fondo);
-  opacity: 0;
+  --pq-ap-r: 0%;
+  -webkit-mask-image: radial-gradient(circle farthest-corner, #000 calc(var(--pq-ap-r) - 25%), transparent var(--pq-ap-r));
+  mask-image: radial-gradient(circle farthest-corner, #000 calc(var(--pq-ap-r) - 25%), transparent var(--pq-ap-r));
 }
 
 /* Cada pieza se ubica con su centro en el centro de la pantalla; las animaciones la
