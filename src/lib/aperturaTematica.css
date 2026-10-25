@@ -1,0 +1,86 @@
+/* Apertura temática de la app instalada (ver aperturaTematica.ts). Los colores llegan
+   como variables --pq-ap-* desde COLORES. */
+
+.pq-apertura {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.pq-ap-capa {
+  position: absolute;
+  inset: 0;
+}
+.pq-ap-base {
+  background: var(--pq-ap-base);
+}
+.pq-ap-tema {
+  background: var(--pq-ap-fondo);
+  opacity: 0;
+}
+
+/* Cada pieza se ubica con su centro en el centro de la pantalla; las animaciones la
+   mueven desde ahí con transform. */
+.pq-ap-pieza {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+
+.pq-ap-halo {
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pq-ap-halo) 0%, transparent 62%);
+  opacity: 0;
+}
+
+.pq-ap-icono {
+  border-radius: 50%;
+  background: var(--pq-ap-icono);
+}
+.pq-ap-icono svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pq-ap-murcielago svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  fill: var(--pq-ap-murcielago);
+}
+.pq-ap-ala {
+  transform-box: view-box;
+  animation: pq-ap-aleteo-der 0.16s ease-in-out infinite alternate;
+}
+.pq-ap-ala-der {
+  transform-origin: 52px 24px;
+}
+.pq-ap-ala-izq {
+  transform-origin: 48px 24px;
+  animation-name: pq-ap-aleteo-izq;
+}
+@keyframes pq-ap-aleteo-der {
+  from { transform: rotate(-28deg); }
+  to   { transform: rotate(22deg); }
+}
+@keyframes pq-ap-aleteo-izq {
+  from { transform: rotate(28deg); }
+  to   { transform: rotate(-22deg); }
+}
+
+.pq-ap-maraca svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transform-origin: 50% 92%;
+}
+
+.pq-ap-nota {
+  font: 700 22px/1 system-ui, sans-serif;
+  color: var(--pq-ap-nota);
+  opacity: 0;
+}
