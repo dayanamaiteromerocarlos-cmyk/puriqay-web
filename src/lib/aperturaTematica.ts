@@ -1,9 +1,9 @@
 // Apertura temática de la app instalada (Halloween + Canción Criolla), al estilo de la
 // de Pinterest. Sigue a la pantalla de inicio que dibuja el sistema (fondo blanco del
-// manifest con el ícono): el ícono crece y de su borde sale un resplandor naranja que se
-// extiende hasta la mitad del camino a los bordes; después salen murciélagos desde detrás
-// del ícono y dos maracas se agitan encima; al final fondo e ícono se desvanecen y los
-// murciélagos siguen un instante sobre la app.
+// manifest con el ícono): el ícono crece; luego, todo a la vez, salen murciélagos desde
+// detrás de él, dos maracas se agitan encima y de su borde nace un resplandor dorado →
+// naranja con chispas, que llega a la mitad del camino a los bordes; al final fondo e
+// ícono se desvanecen y los murciélagos siguen un instante sobre la app.
 // El recurso completo, con otros temas y una página de prueba, está en
 // recursos/apertura-tematica/.
 import './aperturaTematica.css';
@@ -18,9 +18,21 @@ const COLORES = {
   icono: '#0e7a77', // pq-teal
   p: '#ffffff',
   murcielago: '#2B2230',
-  // Resplandor que nace en el borde del ícono y se apaga hacia afuera.
-  halo: '#F0A866',
   nota: '#0b4d4b', // pq-teal-deep
+};
+
+// Resplandor: dorado pegado al ícono que se vuelve naranja calabaza y se apaga (r, g, b).
+const DORADO = '247, 200, 115';
+const BRASA = '244, 150, 80';
+
+// Degradado del resplandor, desde `inicio` (el borde del ícono, en % del radio) hasta
+// el final. La opacidad cae en varios pasos, como una curva, para que no quede un aro
+// marcado ni un corte brusco.
+const degradadoHalo = (inicio: number) => {
+  const en = (f: number) => `${(inicio + (100 - inicio) * f).toFixed(1)}%`;
+  return `radial-gradient(circle closest-side, rgba(${DORADO}, .6) ${inicio.toFixed(1)}%, ` +
+    `rgba(${BRASA}, .5) ${en(0.14)}, rgba(${BRASA}, .36) ${en(0.32)}, ` +
+    `rgba(${BRASA}, .21) ${en(0.52)}, rgba(${BRASA}, .09) ${en(0.74)}, rgba(${BRASA}, 0) 100%)`;
 };
 
 // Destino de cada murciélago: x, y como fracción de medio ancho / medio alto desde el
@@ -32,11 +44,11 @@ const MURCIELAGOS: [number, number, number, number][] = [
 
 // Momentos de la animación en ms.
 const T = {
-  tema: 350,        // el naranja empieza a salir del borde del ícono
-  murcielagos: 900, // salen los murciélagos, con el naranja ya extendido
-  maracas: 1000,    // salen las maracas
-  salida: 2200,     // fondo e ícono se desvanecen
-  fin: 2850,        // se quita la apertura
+  tema: 350,        // el ícono crece
+  murcielagos: 650, // salen los murciélagos y, a la vez, el resplandor y las chispas
+  maracas: 750,     // salen las maracas
+  salida: 2100,     // fondo e ícono se desvanecen
+  fin: 2750,        // se quita la apertura
 };
 
 const ALA = 'M52 22C60 10 75 6 96 12C88 16 86 22 88 28C82 25 77 26 74 31C70 27 64 27 60 31C58 27 55 26 52 28Z';
@@ -98,14 +110,18 @@ export function mostrarApertura(): Promise<void> {
   // ícono va encima del vuelo, así todo parece salir de detrás de él; y el vuelo se
   // desvanece después que el fondo, por eso queda flotando sobre la app.
   const capaFondo = crear('pq-ap-capa');
-  // Halo naranja: lleno en el borde del ícono (ya agrandado a 1.12) y desvanecido hasta
-  // la mitad del camino entre ese borde y el lado más cercano de la pantalla.
+  // Resplandor: nace en el borde del ícono (ya agrandado a 1.12) y se apaga a la mitad
+  // del camino entre ese borde y el lado más cercano de la pantalla. La envoltura lo
+  // hace crecer; el de adentro "respira" con las maracas.
   const radioIcono = icono * 0.56;
   const radioHalo = radioIcono + (Math.min(ancho, alto) / 2 - radioIcono) * 0.5;
-  const halo = crear('pq-ap-pieza pq-ap-halo');
-  centrar(halo, radioHalo * 2);
-  halo.style.background = `radial-gradient(circle closest-side, var(--pq-ap-halo) ${(radioIcono / radioHalo) * 100}%, transparent 100%)`;
-  capaFondo.append(crear('pq-ap-capa pq-ap-base'), halo);
+  const envolturaHalo = crear('pq-ap-pieza');
+  centrar(envolturaHalo, radioHalo * 2);
+  envolturaHalo.style.opacity = '0';
+  const halo = crear('pq-ap-capa pq-ap-halo');
+  halo.style.background = degradadoHalo((radioIcono / radioHalo) * 100);
+  envolturaHalo.append(halo);
+  capaFondo.append(crear('pq-ap-capa pq-ap-base'), envolturaHalo);
 
   const capaVuelo = crear('pq-ap-capa');
   const capaIcono = crear('pq-ap-capa');
@@ -125,23 +141,49 @@ export function mostrarApertura(): Promise<void> {
     const terminar = (ms: number) => setTimeout(() => { raiz.remove(); resolver(); }, ms);
 
     if (reducir) {
-      anim(halo, [{ opacity: 0 }, { opacity: 1 }], { delay: 200, duration: 300 });
+      anim(envolturaHalo, [{ opacity: 0 }, { opacity: 1 }], { delay: 200, duration: 300 });
       anim(raiz, [{ opacity: 1 }, { opacity: 0 }], { delay: 900, duration: 300 });
       terminar(1250);
       return;
     }
 
-    // 1. El ícono crece un poco y el halo naranja sale de su borde y se extiende hacia
-    //    afuera (empieza del tamaño del ícono).
+    // 1. El ícono crece un poco.
     anim(ico, [{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }],
       { delay: T.tema, duration: 500, easing: 'cubic-bezier(.34,1.56,.64,1)' });
-    anim(halo, [
-      { opacity: 0, transform: `scale(${radioIcono / radioHalo})` },
-      { opacity: 1, offset: 0.25 },
-      { opacity: 1, transform: 'scale(1)' },
-    ], { delay: T.tema, duration: T.murcielagos - T.tema, easing: 'ease-out' });
 
-    // 2. Murciélagos: salen del borde de arriba del ícono, se abren en abanico creciendo,
+    // 2. A la vez que salen murciélagos y maracas, el resplandor se abre desde el borde
+    //    del ícono (empieza de su tamaño) con una curva que frena suave al final; luego
+    //    respira dos veces al compás de las maracas.
+    anim(envolturaHalo, [
+      { opacity: 0, transform: `scale(${radioIcono / radioHalo})` },
+      { opacity: 1, offset: 0.35 },
+      { opacity: 1, transform: 'scale(1)' },
+    ], { delay: T.murcielagos, duration: 1000, easing: 'cubic-bezier(.16,1,.3,1)' });
+    anim(halo, [
+      { transform: 'scale(1)', opacity: 1 },
+      { transform: 'scale(1.05)', opacity: 0.8 },
+      { transform: 'scale(1)', opacity: 1 },
+    ], { delay: T.maracas + 350, duration: 450, iterations: 2, easing: 'ease-in-out', fill: 'none' });
+
+    // Chispas: puntitos dorados que saltan del borde del ícono y se apagan dentro del
+    // resplandor, como brasas.
+    for (let i = 0; i < 10; i++) {
+      const angulo = (i / 10) * Math.PI * 2 + (i % 2 ? 0.25 : -0.1);
+      const lejos = radioIcono + (radioHalo - radioIcono) * (0.55 + (i % 3) * 0.15);
+      const c = crear('pq-ap-pieza pq-ap-chispa');
+      centrar(c, 5 + (i % 3));
+      c.style.opacity = '0';
+      capaFondo.append(c);
+      const x0 = Math.cos(angulo) * radioIcono, y0 = Math.sin(angulo) * radioIcono;
+      const x1 = Math.cos(angulo) * lejos, y1 = Math.sin(angulo) * lejos - 12;
+      anim(c, [
+        { opacity: 0, transform: `translate(${x0}px, ${y0}px) scale(.6)` },
+        { opacity: 1, offset: 0.2 },
+        { opacity: 0, transform: `translate(${x1}px, ${y1}px) scale(1)` },
+      ], { delay: T.murcielagos + 80 + i * 55, duration: 900 + (i % 4) * 120, easing: 'ease-out' });
+    }
+
+    // 3. Murciélagos: salen del borde de arriba del ícono, se abren en abanico creciendo,
     //    siguen flotando y al final se alejan sobre la app.
     const baseMurcielago = icono * 0.42;
     const salida0 = `translate(0px, ${-icono * 0.18}px)`;
@@ -173,7 +215,7 @@ export function mostrarApertura(): Promise<void> {
       ], { delay: T.salida, duration: T.fin - T.salida - 50, easing: 'ease-in' });
     });
 
-    // 3. Maracas: una criolla (roja y blanca) y una de Halloween (naranja y negra). Salen
+    // 4. Maracas: una criolla (roja y blanca) y una de Halloween (naranja y negra). Salen
     //    de detrás del ícono y quedan encima de él en V, con los mangos juntos abajo; se
     //    agitan, sueltan notas y al final se van con los murciélagos.
     const anchoMaraca = icono * 0.18;
@@ -221,7 +263,7 @@ export function mostrarApertura(): Promise<void> {
       });
     });
 
-    // 4. Salida: fondo e ícono se desvanecen; el vuelo sigue un poco más (arriba).
+    // 5. Salida: fondo e ícono se desvanecen; el vuelo sigue un poco más (arriba).
     anim(capaFondo, [{ opacity: 1 }, { opacity: 0 }], { delay: T.salida, duration: 350, easing: salir });
     anim(ico, [{ opacity: 1, transform: 'scale(1.12)' }, { opacity: 0, transform: 'scale(1.3)' }],
       { delay: T.salida, duration: 320, easing: salir });
