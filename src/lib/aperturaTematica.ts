@@ -1,9 +1,9 @@
 // Apertura temática de la app instalada (Halloween + Canción Criolla), al estilo de la
 // de Pinterest. Sigue a la pantalla de inicio que dibuja el sistema (fondo blanco del
-// manifest con el ícono): un naranja se extiende desde el centro hasta teñir los bordes y
-// el ícono crece con un halo; después salen murciélagos desde detrás de él y dos maracas
-// se agitan encima; al final fondo e ícono se desvanecen y los murciélagos siguen un
-// instante sobre la app.
+// manifest con el ícono): el ícono crece y de su borde sale un resplandor naranja que se
+// extiende hasta la mitad del camino a los bordes; después salen murciélagos desde detrás
+// del ícono y dos maracas se agitan encima; al final fondo e ícono se desvanecen y los
+// murciélagos siguen un instante sobre la app.
 // El recurso completo, con otros temas y una página de prueba, está en
 // recursos/apertura-tematica/.
 import './aperturaTematica.css';
@@ -17,10 +17,9 @@ const COLORES = {
   base: '#ffffff',
   icono: '#0e7a77', // pq-teal
   p: '#ffffff',
-  // El centro sigue blanco y solo los bordes se tiñen de naranja.
-  fondo: 'radial-gradient(ellipse at center, #FFFFFF 0%, #FFFFFF 38%, #FBE3C8 68%, #F0A866 100%)',
   murcielago: '#2B2230',
-  halo: 'rgba(255, 255, 255, 0.9)',
+  // Resplandor que nace en el borde del ícono y se apaga hacia afuera.
+  halo: '#F0A866',
   nota: '#0b4d4b', // pq-teal-deep
 };
 
@@ -33,8 +32,8 @@ const MURCIELAGOS: [number, number, number, number][] = [
 
 // Momentos de la animación en ms.
 const T = {
-  tema: 350,        // el naranja empieza a extenderse desde el centro
-  murcielagos: 900, // salen los murciélagos, con el naranja ya en los bordes
+  tema: 350,        // el naranja empieza a salir del borde del ícono
+  murcielagos: 900, // salen los murciélagos, con el naranja ya extendido
   maracas: 1000,    // salen las maracas
   salida: 2200,     // fondo e ícono se desvanecen
   fin: 2850,        // se quita la apertura
@@ -99,10 +98,14 @@ export function mostrarApertura(): Promise<void> {
   // ícono va encima del vuelo, así todo parece salir de detrás de él; y el vuelo se
   // desvanece después que el fondo, por eso queda flotando sobre la app.
   const capaFondo = crear('pq-ap-capa');
-  const degradado = crear('pq-ap-capa pq-ap-tema');
+  // Halo naranja: lleno en el borde del ícono (ya agrandado a 1.12) y desvanecido hasta
+  // la mitad del camino entre ese borde y el lado más cercano de la pantalla.
+  const radioIcono = icono * 0.56;
+  const radioHalo = radioIcono + (Math.min(ancho, alto) / 2 - radioIcono) * 0.5;
   const halo = crear('pq-ap-pieza pq-ap-halo');
-  centrar(halo, icono * 2.4);
-  capaFondo.append(crear('pq-ap-capa pq-ap-base'), degradado, halo);
+  centrar(halo, radioHalo * 2);
+  halo.style.background = `radial-gradient(circle closest-side, var(--pq-ap-halo) ${(radioIcono / radioHalo) * 100}%, transparent 100%)`;
+  capaFondo.append(crear('pq-ap-capa pq-ap-base'), halo);
 
   const capaVuelo = crear('pq-ap-capa');
   const capaIcono = crear('pq-ap-capa');
@@ -122,21 +125,21 @@ export function mostrarApertura(): Promise<void> {
     const terminar = (ms: number) => setTimeout(() => { raiz.remove(); resolver(); }, ms);
 
     if (reducir) {
-      degradado.style.setProperty('--pq-ap-r', '130%');
-      anim(degradado, [{ opacity: 0 }, { opacity: 1 }], { delay: 200, duration: 300 });
+      anim(halo, [{ opacity: 0 }, { opacity: 1 }], { delay: 200, duration: 300 });
       anim(raiz, [{ opacity: 1 }, { opacity: 0 }], { delay: 900, duration: 300 });
       terminar(1250);
       return;
     }
 
-    // 1. El naranja se extiende desde el centro hasta los bordes; el ícono crece un poco
-    //    y aparece el halo.
-    anim(degradado, [{ '--pq-ap-r': '0%' }, { '--pq-ap-r': '130%' }],
-      { delay: T.tema, duration: T.murcielagos - T.tema, easing: 'ease-out' });
+    // 1. El ícono crece un poco y el halo naranja sale de su borde y se extiende hacia
+    //    afuera (empieza del tamaño del ícono).
     anim(ico, [{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }],
       { delay: T.tema, duration: 500, easing: 'cubic-bezier(.34,1.56,.64,1)' });
-    anim(halo, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1)' }],
-      { delay: T.tema, duration: 600, easing: 'ease-out' });
+    anim(halo, [
+      { opacity: 0, transform: `scale(${radioIcono / radioHalo})` },
+      { opacity: 1, offset: 0.25 },
+      { opacity: 1, transform: 'scale(1)' },
+    ], { delay: T.tema, duration: T.murcielagos - T.tema, easing: 'ease-out' });
 
     // 2. Murciélagos: salen del borde de arriba del ícono, se abren en abanico creciendo,
     //    siguen flotando y al final se alejan sobre la app.
