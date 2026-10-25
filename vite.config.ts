@@ -22,7 +22,8 @@ export default defineConfig({
         short_name: 'Puriqay',
         description: 'Gestión de voluntariado de Puriqay: jornadas, asistencias y perfil.',
         lang: 'es-PE',
-        // Dashboard ya manda al login si no hay sesión; "/" mostraría el login siempre.
+        // Con sesión abre directo en Inicio; sin sesión, Dashboard manda al login.
+        // ("/" también llegaría al panel, pero mostrando el login un instante.)
         start_url: '/dashboard',
         scope: '/',
         display: 'standalone',
