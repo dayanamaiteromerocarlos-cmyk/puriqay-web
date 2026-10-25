@@ -57,7 +57,7 @@ Las piezas reutilizables están en `src/components/JornadaUI.tsx` (`EncabezadoPa
 
 ### Menú lateral (escritorio)
 - Blanco, 256px, borde derecho `pq-cream-dark`.
-- Cabecera de 80px con el logo "P" redondo (sin texto "Puriqay Voluntariado") y el botón de contraer.
+- Cabecera de 80px con el logotipo "Puriqay +" (`public/img/puriqay-plus-wordmark.png`, 44px de alto) a la izquierda y el botón de contraer a la derecha. Contraído (80px de ancho) solo se ve el isotipo "P" en círculo (`puriqay-p-circulo.png`, 44×44), que es a la vez el botón de expandir.
 - Tarjeta de rol en `pq-cream`: rol en mayúsculas y, debajo, el área.
 - Ítems: 16px, icono de 22px. Activo: fondo `pq-teal`, texto blanco y sombra suave. Inactivo: texto `pq-ink` al 70 % con icono `pq-teal-dark` al 70 %.
 - Pie: el nombre corto (abre Mi Perfil) y "Cerrar Sesión" en `pq-error`.
@@ -65,7 +65,7 @@ Las piezas reutilizables están en `src/components/JornadaUI.tsx` (`EncabezadoPa
 - **Inicio** y **Mis asistencias** los ven todos: voluntarios externos, personal interno y admins. El resto de secciones dependen del rol y el área (`permisos.ts`).
 
 ### Celular
-- Cabecera de 72px: logo "P" a la izquierda y botón ☰ de 44px a la derecha.
+- Cabecera de 72px: logotipo "Puriqay +" de 40px de alto a la izquierda y botón ☰ de 44px a la derecha (el panel del menú usa el mismo logotipo).
 - El menú se abre como panel lateral desde la derecha (300px), con el fondo oscurecido y una ✕ para cerrar.
 - Todo en una columna; los botones principales ocupan el ancho completo.
 - Los modales largos ocupan toda la pantalla, con los botones fijos abajo; los cortos salen desde abajo.

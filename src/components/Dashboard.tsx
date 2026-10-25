@@ -256,14 +256,28 @@ export default function Dashboard() {
         isSidebarOpen ? 'w-64' : 'w-20'
       }`}>
         <div className={`h-20 pantalla-baja:h-16 flex items-center border-b border-pq-cream-dark shrink-0 ${isSidebarOpen ? 'justify-between px-5' : 'justify-center'}`}>
-          {isSidebarOpen && <img src="/img/logo-puriqay.png" alt="Puriqay" className="w-12 h-12 pantalla-baja:w-10 pantalla-baja:h-10 rounded-full object-cover" />}
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            aria-label={isSidebarOpen ? 'Contraer menú' : 'Expandir menú'}
-            className="p-2 rounded-xl hover:bg-pq-cream text-pq-teal-deep transition-colors"
-          >
-            {isSidebarOpen ? <ChevronLeft size={24} /> : <Menu size={24} />}
-          </button>
+          {isSidebarOpen ? (
+            <>
+              <img src="/img/puriqay-plus-wordmark.png" alt="Puriqay +" className="h-11 w-auto" />
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                aria-label="Contraer menú"
+                className="p-2 rounded-xl hover:bg-pq-cream text-pq-teal-deep transition-colors"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            </>
+          ) : (
+            // Contraído no caben logo y botón: el isotipo mismo expande el menú.
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              aria-label="Expandir menú"
+              title="Expandir menú"
+              className="rounded-full focus-visible:shadow-pq-focus outline-none"
+            >
+              <img src="/img/puriqay-p-circulo.png" alt="Puriqay +" className="w-11 h-11" />
+            </button>
+          )}
         </div>
         {contenidoMenu(!isSidebarOpen)}
       </aside>
@@ -274,7 +288,7 @@ export default function Dashboard() {
           <div className="absolute inset-0 bg-pq-ink/45" onClick={() => setMenuMovil(false)} aria-hidden="true" />
           <aside role="dialog" aria-modal="true" aria-label="Menú" className="absolute top-0 right-0 bottom-0 w-[300px] max-w-[85vw] bg-white flex flex-col shadow-[-8px_0_24px_rgba(31,43,42,0.16)]">
             <div className="h-[72px] flex items-center justify-between pl-5 pr-4 border-b border-pq-cream-dark shrink-0">
-              <img src="/img/logo-puriqay.png" alt="Puriqay" className="w-11 h-11 rounded-full object-cover" />
+              <img src="/img/puriqay-plus-wordmark.png" alt="Puriqay +" className="h-10 w-auto" />
               <button onClick={() => setMenuMovil(false)} aria-label="Cerrar menú" className="w-11 h-11 rounded-xl bg-pq-cream text-pq-teal-deep flex items-center justify-center">
                 <X size={24} />
               </button>
@@ -289,7 +303,7 @@ export default function Dashboard() {
 
         {/* CABECERA (SOLO EN CELULARES) */}
         <header className="md:hidden h-[72px] flex items-center justify-between bg-white px-4 border-b border-pq-cream-dark shrink-0 shadow-sm z-10">
-          <img src="/img/logo-puriqay.png" alt="Puriqay" className="w-11 h-11 rounded-full object-cover" />
+          <img src="/img/puriqay-plus-wordmark.png" alt="Puriqay +" className="h-10 w-auto" />
           <button
             onClick={() => setMenuMovil(true)}
             aria-label="Abrir menú"
