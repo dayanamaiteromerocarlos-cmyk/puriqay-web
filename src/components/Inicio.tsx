@@ -126,7 +126,7 @@ export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Pro
             <Star size={28} className="absolute left-4 top-4 text-pq-marku" aria-hidden="true" />
             <figure className="w-full max-w-[260px] p-3 pb-5 border-[1.5px] border-pq-brand rounded-xl bg-white -rotate-2 shadow-pq-card">
               <div className="aspect-square rounded-lg bg-pq-cream flex items-center justify-center overflow-hidden">
-                <img src="/img/markus-proximamente.webp" alt="Markus saludando" className="w-4/5 h-4/5 object-contain" />
+                <img src="/img/markus-proximamente.png" alt="Markus señalando" className="w-4/5 h-4/5 object-contain" />
               </div>
               <figcaption className="mt-4 text-center font-display font-bold text-pq-teal-deep">Próximamente</figcaption>
             </figure>
