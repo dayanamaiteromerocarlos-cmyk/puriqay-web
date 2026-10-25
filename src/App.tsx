@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'; // <-- 1. Importamos el Toaster
 import Login from './components/Login';
+import ActualizacionApp from './components/ActualizacionApp';
 
 // Solo el login va en la descarga inicial; el resto se pide al entrar a su ruta.
 const cargarDashboard = () => import('./components/Dashboard');
@@ -39,8 +40,9 @@ function App() {
               color: '#b42318',      /* pq-error */
             },
           }
-        }} 
+        }}
       />
+      <ActualizacionApp />
 
       {/* 3. Tus rutas intactas */}
       <BrowserRouter>

@@ -6,7 +6,7 @@
 //
 // Requiere haber iniciado sesión antes: `npx wrangler login`.
 import { spawnSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PROJECT = 'puriqay-web';
@@ -60,6 +60,12 @@ for (const file of readdirSync(assets).filter((f) => f.endsWith('.js'))) {
   if (code.includes(prodHost)) hasProd = true;
 }
 if (!hasProd) fail('El build no contiene el Supabase de producción; no se despliega.');
+
+// Con `_redirects` un archivo faltante responde index.html con 200, y el navegador
+// ignora sin avisar un manifest o un service worker roto.
+for (const file of ['sw.js', 'manifest.webmanifest', '_headers', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png']) {
+  if (!existsSync(join('dist', file))) fail(`Falta dist/${file}; la PWA quedaría rota. No se despliega.`);
+}
 
 run('npx', ['wrangler', 'pages', 'deploy', 'dist', '--project-name', PROJECT, '--branch', 'main', '--commit-dirty=true'], env);
 console.log('\n[deploy] Listo: https://app.puriqay.org');
