@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apertura temática · Puriqay</title>
+  <link rel="stylesheet" href="apertura.css">
+  <style>
+    :root {
+      --teal: #1C6463;
+      --tinta: #1F2B2A;
+      --crema: #F7F5F0;
+      --borde: #D9DEDC;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #E9ECEB;
+      color: var(--tinta);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    /* Marco de celular: la apertura se dibuja dentro de él. */
+    .celular {
+      position: relative;
+      width: 390px;
+      max-width: 100%;
+      height: 780px;
+      max-height: calc(100vh - 48px);
+      border-radius: 36px;
+      overflow: hidden;
+      background: var(--crema);
+      box-shadow: 0 0 0 10px #1F2B2A, 0 24px 48px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Vista siguiente simulada: el inicio de sesión. */
+    .login {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+      padding: 32px 28px;
+    }
+    .login img { width: 72px; height: 72px; align-self: center; }
+    .login h1 { margin: 6px 0 2px; text-align: center; font-size: 24px; color: #0F3D3C; }
+    .login p { margin: 0 0 10px; text-align: center; color: #5E6B69; font-size: 14px; }
+    .login label { font-size: 13px; font-weight: 600; }
+    .login input {
+      width: 100%; height: 48px; margin-top: 6px; padding: 0 14px;
+      border: 1px solid var(--borde); border-radius: 12px; font: inherit; background: #fff;
+    }
+    .login button {
+      height: 50px; margin-top: 8px; border: 0; border-radius: 12px;
+      background: var(--teal); color: #fff; font: 600 16px/1 inherit; cursor: pointer;
+    }
+
+    .controles {
+      width: 280px;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .controles h2 { margin: 0; font-size: 20px; }
+    .controles p { margin: 0; font-size: 14px; color: #5E6B69; line-height: 1.5; }
+    .controles label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
+    .controles select, .controles button {
+      height: 44px; border-radius: 12px; font: inherit; font-size: 15px;
+    }
+    .controles select { border: 1px solid var(--borde); padding: 0 10px; background: #fff; }
+    .controles button { border: 0; background: var(--teal); color: #fff; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="celular" id="celular">
+    <form class="login" onsubmit="return false">
+      <img src="../../public/img/puriqay-p-circulo.png" alt="Puriqay">
+      <h1>¡Hola de nuevo!</h1>
+      <p>Inicia sesión para ver tus jornadas</p>
+      <label>Correo<input type="email" placeholder="tu@correo.com"></label>
+      <label>Contraseña<input type="password" placeholder="••••••••"></label>
+      <button type="submit">Iniciar sesión</button>
+    </form>
+  </div>
+
+  <div class="controles">
+    <h2>Apertura temática</h2>
+    <p>Halloween + Canción Criolla. La vista de abajo simula el inicio de sesión.</p>
+    <label>Tema
+      <select id="tema">
+        <option value="atardecer">Atardecer (morado → naranja)</option>
+        <option value="claro">Claro (crema → naranja)</option>
+        <option value="noche">Noche (verdes Puriqay)</option>
+      </select>
+    </label>
+    <label>Velocidad
+      <select id="velocidad">
+        <option value="1">Normal</option>
+        <option value="0.5">La mitad</option>
+        <option value="0.25">Un cuarto</option>
+      </select>
+    </label>
+    <button id="repetir" type="button">Repetir</button>
+  </div>
+
+  <script src="apertura.js"></script>
+  <script>
+    const celular = document.getElementById('celular');
+    const boton = document.getElementById('repetir');
+    function reproducir() {
+      boton.disabled = true;
+      PuriqayApertura.mostrar({
+        contenedor: celular,
+        tema: document.getElementById('tema').value,
+        velocidad: Number(document.getElementById('velocidad').value),
+      }).then(() => { boton.disabled = false; });
+    }
+    boton.addEventListener('click', reproducir);
+    reproducir();
+  </script>
+</body>
+</html>
