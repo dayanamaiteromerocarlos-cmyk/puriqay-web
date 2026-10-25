@@ -24,19 +24,6 @@
   top: 50%;
 }
 
-/* El degradado lo arma aperturaTematica.ts, porque depende del tamaño del ícono. El
-   desenfoque borra el escalonado que dejan los pasos del degradado. */
-.pq-ap-halo {
-  border-radius: 50%;
-  filter: blur(6px);
-}
-
-.pq-ap-chispa {
-  border-radius: 50%;
-  background: rgb(255, 222, 150);
-  box-shadow: 0 0 6px 2px rgba(244, 150, 80, 0.7);
-}
-
 .pq-ap-icono {
   border-radius: 50%;
   background: var(--pq-ap-icono);
