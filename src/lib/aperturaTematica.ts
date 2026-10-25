@@ -1,7 +1,7 @@
 // Apertura temática de la app instalada (Halloween + Canción Criolla), al estilo de la
 // de Pinterest. Sigue a la pantalla de inicio que dibuja el sistema (fondo blanco del
-// manifest con el ícono): el blanco pasa a un degradado crema → naranja, el ícono crece
-// con un halo, salen murciélagos desde detrás de él y dos maracas se agitan encima; al
+// manifest con el ícono): los bordes del blanco se tiñen de naranja y el ícono crece con
+// un halo; después salen murciélagos desde detrás de él y dos maracas se agitan encima; al
 // final fondo e ícono se desvanecen y los murciélagos siguen un instante sobre la app.
 // El recurso completo, con otros temas y una página de prueba, está en
 // recursos/apertura-tematica/.
@@ -16,7 +16,8 @@ const COLORES = {
   base: '#ffffff',
   icono: '#0e7a77', // pq-teal
   p: '#ffffff',
-  fondo: 'linear-gradient(180deg, #F3EEE6 0%, #F1DCC4 55%, #EBA56C 100%)',
+  // El centro sigue blanco y solo los bordes se tiñen de naranja.
+  fondo: 'radial-gradient(ellipse at center, #FFFFFF 0%, #FFFFFF 38%, #FBE3C8 68%, #F0A866 100%)',
   murcielago: '#2B2230',
   halo: 'rgba(255, 255, 255, 0.9)',
   nota: '#0b4d4b', // pq-teal-deep
@@ -31,11 +32,11 @@ const MURCIELAGOS: [number, number, number, number][] = [
 
 // Momentos de la animación en ms.
 const T = {
-  tema: 350,        // el blanco empieza a pasar al degradado
-  murcielagos: 600, // salen los murciélagos
-  maracas: 700,     // salen las maracas
-  salida: 2000,     // fondo e ícono se desvanecen
-  fin: 2650,        // se quita la apertura
+  tema: 350,        // los bordes empiezan a tomar el naranja
+  murcielagos: 750, // salen los murciélagos, ya con el naranja puesto
+  maracas: 850,     // salen las maracas
+  salida: 2100,     // fondo e ícono se desvanecen
+  fin: 2750,        // se quita la apertura
 };
 
 const ALA = 'M52 22C60 10 75 6 96 12C88 16 86 22 88 28C82 25 77 26 74 31C70 27 64 27 60 31C58 27 55 26 52 28Z';
