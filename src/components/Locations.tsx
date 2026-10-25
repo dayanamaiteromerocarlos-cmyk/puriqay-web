@@ -207,46 +207,46 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
           Registrar Nuevo Lugar / Aliado <span className="w-2 h-2 rounded-full bg-pq-marku inline-block"></span>
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="flex flex-wrap gap-5">
-            <div className="flex-[2_1_320px] min-w-0">
+        <form onSubmit={handleSubmit} className="@container space-y-5">
+          <div className="grid grid-cols-1 @xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+            <div className="min-w-0">
               <label className={labelClass}>Nombre del Lugar / Organización <span className="text-pq-error">*</span></label>
               <input type="text" name="name" required value={formData.name} onChange={handleChange} className={inputClass} placeholder="Ej: Albergue 4 Patas" />
             </div>
-            <div className="flex-[1_1_200px] min-w-0">
+            <div className="min-w-0">
               <label className={labelClass}>Línea de Acción <span className="text-pq-error">*</span></label>
               <ActionLineSelect value={formData.action_line} onChange={handleChange} />
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-5">
-            <div className="flex-[1_1_260px] min-w-0">
+          <div className="grid grid-cols-1 @xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+            <div className="min-w-0">
               <label className={labelClass}>Encargado(a) <span className="text-pq-error">*</span></label>
               <input type="text" name="manager_name" required pattern={PATTERNS.soloLetras} title={TITLES.soloLetras} value={formData.manager_name} onChange={handleChange} className={inputClass} placeholder="Nombre del contacto principal" />
             </div>
-            <div className="flex-[1_1_200px] min-w-0">
+            <div className="min-w-0">
               <label className={labelClass}>Teléfono de Contacto <span className="text-xs font-medium text-pq-ink-muted">(9 números)</span> <span className="text-pq-error">*</span></label>
               <input type="text" name="contact_phone" required maxLength={9} inputMode="numeric" pattern={PATTERNS.celular} title={TITLES.celular} value={formData.contact_phone} onChange={handleChange} className={inputClass} placeholder="Ej: 999888777" />
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-5">
-            <div className="flex-[2_1_320px] min-w-0">
+          <div className="grid grid-cols-1 @xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+            <div className="min-w-0">
               <label className={labelClass}>Dirección Exacta <span className="text-pq-error">*</span></label>
               <input type="text" name="address" required value={formData.address} onChange={handleChange} className={inputClass} />
             </div>
-            <div className="flex-[1_1_200px] min-w-0">
+            <div className="min-w-0">
               <label className={labelClass}>Distrito <span className="text-pq-error">*</span></label>
               <DistrictSelect value={formData.district} onChange={handleChange} />
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-5">
-            <div className="flex-[1_1_260px] min-w-0">
+          <div className="grid grid-cols-1 @xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+            <div className="min-w-0">
               <label className={labelClass}>Punto de Encuentro <span className="text-pq-error">*</span></label>
               <input type="text" name="meeting_point" required value={formData.meeting_point} onChange={handleChange} className={inputClass} placeholder="Ej: Puerta principal / Estación de tren" />
             </div>
-            <div className="flex-[1_1_200px] min-w-0">
+            <div className="min-w-0">
               <label className={labelClass}>Link de Google Maps <span className="text-pq-error">*</span></label>
               <input type="url" name="maps_link" required value={formData.maps_link} onChange={handleChange} className={inputClass} placeholder="https://maps.app.goo.gl/..." />
             </div>
@@ -450,46 +450,46 @@ export default function Locations({ archivaLugares = false }: { archivaLugares?:
               <BotonPrimario type="submit" disabled={savingEdit}>{savingEdit ? 'Guardando...' : 'Guardar Cambios'}</BotonPrimario>
             </>}
           >
-            <div className="space-y-5">
-              <div className="flex flex-wrap gap-5">
-                <div className="flex-[2_1_320px] min-w-0">
+            <div className="@container space-y-5">
+              <div className="grid grid-cols-1 @xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+                <div className="min-w-0">
                   <label className={labelClass}>Nombre del Lugar / Organización <span className="text-pq-error">*</span></label>
                   <input type="text" name="name" required value={editForm.name} onChange={handleEditChange} className={inputClass} />
                 </div>
-                <div className="flex-[1_1_200px] min-w-0">
+                <div className="min-w-0">
                   <label className={labelClass}>Línea de Acción <span className="text-pq-error">*</span></label>
                   <ActionLineSelect value={editForm.action_line} onChange={handleEditChange} />
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-5">
-                <div className="flex-[1_1_260px] min-w-0">
+              <div className="grid grid-cols-1 @xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+                <div className="min-w-0">
                   <label className={labelClass}>Encargado(a) <span className="text-pq-error">*</span></label>
                   <input type="text" name="manager_name" required pattern={PATTERNS.soloLetras} title={TITLES.soloLetras} value={editForm.manager_name} onChange={handleEditChange} className={inputClass} />
                 </div>
-                <div className="flex-[1_1_200px] min-w-0">
+                <div className="min-w-0">
                   <label className={labelClass}>Teléfono de Contacto <span className="text-xs font-medium text-pq-ink-muted">(9 números)</span> <span className="text-pq-error">*</span></label>
                   <input type="text" name="contact_phone" required maxLength={9} inputMode="numeric" pattern={PATTERNS.celular} title={TITLES.celular} value={editForm.contact_phone} onChange={handleEditChange} className={inputClass} />
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-5">
-                <div className="flex-[2_1_320px] min-w-0">
+              <div className="grid grid-cols-1 @xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+                <div className="min-w-0">
                   <label className={labelClass}>Dirección Exacta <span className="text-pq-error">*</span></label>
                   <input type="text" name="address" required value={editForm.address} onChange={handleEditChange} className={inputClass} />
                 </div>
-                <div className="flex-[1_1_200px] min-w-0">
+                <div className="min-w-0">
                   <label className={labelClass}>Distrito <span className="text-pq-error">*</span></label>
                   <DistrictSelect value={editForm.district} onChange={handleEditChange} />
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-5">
-                <div className="flex-[1_1_260px] min-w-0">
+              <div className="grid grid-cols-1 @xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+                <div className="min-w-0">
                   <label className={labelClass}>Punto de Encuentro <span className="text-pq-error">*</span></label>
                   <input type="text" name="meeting_point" required value={editForm.meeting_point} onChange={handleEditChange} className={inputClass} />
                 </div>
-                <div className="flex-[1_1_200px] min-w-0">
+                <div className="min-w-0">
                   <label className={labelClass}>Link de Google Maps <span className="text-pq-error">*</span></label>
                   <input type="url" name="maps_link" required value={editForm.maps_link} onChange={handleEditChange} className={inputClass} />
                 </div>

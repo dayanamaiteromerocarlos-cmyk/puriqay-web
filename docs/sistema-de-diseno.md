@@ -61,6 +61,7 @@ Las piezas reutilizables están en `src/components/JornadaUI.tsx` (`EncabezadoPa
 - Tarjeta de rol en `pq-cream`: rol en mayúsculas y, debajo, el área.
 - Ítems: 16px, icono de 22px. Activo: fondo `pq-teal`, texto blanco y sombra suave. Inactivo: texto `pq-ink` al 70 % con icono `pq-teal-dark` al 70 %.
 - Pie: el nombre corto (abre Mi Perfil) y "Cerrar Sesión" en `pq-error`.
+- En pantallas de 800px de alto o menos (variante `pantalla-baja:`, p. ej. laptops de 1366×768) la cabecera baja a 64px, los ítems a 40px y los espacios se reducen, para que entren todas las secciones sin desplazar. Contraído, el menú nunca muestra barra de desplazamiento.
 - **Inicio** y **Mis asistencias** los ven todos: voluntarios externos, personal interno y admins. El resto de secciones dependen del rol y el área (`permisos.ts`).
 
 ### Celular

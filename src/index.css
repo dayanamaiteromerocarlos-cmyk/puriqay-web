@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Pantallas bajas (laptops de 1366x768: ~650px útiles en el navegador). Compacta el menú lateral. */
+@custom-variant pantalla-baja (@media (max-height: 800px));
+
 /*
  * Paleta y estilo de Puriqay, tomados del sistema de diseño "Puriqay" (v1, oct. 2026).
  * Los nombres pq-* de siempre se conservan; al lado va el token del sistema de diseño
