@@ -10,6 +10,10 @@ import { Clock, MapPin, History, ArrowRight, Star, Heart } from 'lucide-react';
 
 const PROXIMAS_EN_INICIO = 3;
 
+// Cuenta de la presentación (demo): en la tarjeta de Inicio ve la foto del creador
+// en vez de Markus. Quitar junto con la cuenta cuando termine la demo.
+const CORREO_DEMO = 'vampirar3@gmail.com';
+
 type Props = {
   userId: string;
   nombre: string;
@@ -23,6 +27,12 @@ export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Pro
   const [lugares, setLugares] = useState<Record<string, LugarPublico>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [esDemo, setEsDemo] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) =>
+      setEsDemo(session?.user.email === CORREO_DEMO));
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -126,9 +136,13 @@ export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Pro
             <Star size={28} className="absolute left-4 top-4 text-pq-marku" aria-hidden="true" />
             <figure className="w-full max-w-[260px] p-3 pb-5 border-[1.5px] border-pq-brand rounded-xl bg-white -rotate-2 shadow-pq-card">
               <div className="aspect-square rounded-lg bg-pq-cream flex items-center justify-center overflow-hidden">
-                <img src="/img/markus-proximamente.png" alt="Markus señalando" className="w-4/5 h-4/5 object-contain" />
+                {esDemo
+                  ? <img src="/img/foto-demo.webp" alt="Voluntario de Puriqay con un perro rescatado" className="w-full h-full object-cover" />
+                  : <img src="/img/markus-proximamente.png" alt="Markus señalando" className="w-4/5 h-4/5 object-contain" />}
               </div>
-              <figcaption className="mt-4 text-center font-display font-bold text-pq-teal-deep">Próximamente</figcaption>
+              <figcaption className="mt-4 text-center font-display font-bold text-pq-teal-deep">
+                {esDemo ? '¡Vamos por una más!' : 'Próximamente'}
+              </figcaption>
             </figure>
             <Heart size={28} className="absolute right-4 bottom-4 text-pq-brand" aria-hidden="true" />
           </section>
