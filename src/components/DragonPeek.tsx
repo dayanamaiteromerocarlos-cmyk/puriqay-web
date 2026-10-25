@@ -44,7 +44,8 @@ const estilo = {
 } as const;
 
 // En celular es más chico para no tapar el botón "Ver detalles" de las tarjetas.
-const ancho = 'w-[clamp(136px,40.7vw,217px)] sm:w-[clamp(217px,35.3vw,516px)]';
+// Desde 640 px (sm) es un 20 % menor que el tamaño original (clamp(217px,35.3vw,516px)).
+const ancho = 'w-[clamp(136px,40.7vw,217px)] sm:w-[clamp(174px,28.2vw,413px)]';
 
 // El WebP se descarga una vez (el de 570 px en pantallas chicas, el de 760 en las
 // demás); cada repetición usa una URL blob nueva para que empiece desde el principio.
