@@ -18,6 +18,7 @@ Because this repo is public, do not write security findings, unpatched weaknesse
 - `npm run build` — `tsc -b && vite build`. TypeScript project references (`tsconfig.app.json`/`tsconfig.node.json`) have `noUnusedLocals`/`noUnusedParameters` on, so the build fails on unused imports/vars, not just type errors.
 - `npm run lint` — runs `oxlint` (config in `.oxlintrc.json`). This repo uses oxlint, not ESLint — there is no `.eslintrc`.
 - `npm run preview` — serve the production build locally.
+- `npm run deploy` — build with `.env` (production Supabase, never `.env.local`) and upload `dist/` to the Cloudflare Pages project `puriqay-web` as production (app.puriqay.org). `npm run deploy -- --preview=<rama>` uploads a preview at `<rama>.puriqay-web-9lc.pages.dev` instead (needed to test the PWA on phones: a service worker requires HTTPS); it still talks to the production database.
 - There is no test framework configured in this repo (no test runner, no test files).
 
 ## Environment

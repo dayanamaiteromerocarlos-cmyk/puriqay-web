@@ -4,6 +4,10 @@
 // apuntan al Supabase local y Vite les da prioridad sobre `.env`), comprueba que el
 // resultado no apunte a localhost y sube `dist/` con wrangler.
 //
+// `npm run deploy -- --preview=<rama>` (o `--preview`, rama `prueba`) sube una vista
+// previa de Cloudflare en <rama>.<proyecto>.pages.dev sin tocar app.puriqay.org.
+// Ojo: usa el mismo Supabase de producción, con datos reales.
+//
 // Requiere haber iniciado sesión antes: `npx wrangler login`.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -29,6 +33,12 @@ function readEnvFile(path) {
 function run(cmd, args, env) {
   const r = spawnSync(cmd, args, { stdio: 'inherit', shell: true, env });
   if (r.status !== 0) fail(`Falló: ${cmd} ${args.join(' ')}`);
+}
+
+const previewArg = process.argv.slice(2).find((a) => a === '--preview' || a.startsWith('--preview='));
+const branch = previewArg ? (previewArg.split('=')[1] || 'prueba') : 'main';
+if (previewArg && (branch === 'main' || !/^[a-z0-9][a-z0-9-]*$/.test(branch))) {
+  fail(`Rama de vista previa no válida: "${branch}" (minúsculas, números y guiones; no "main").`);
 }
 
 let prod;
@@ -67,5 +77,7 @@ for (const file of ['sw.js', 'manifest.webmanifest', '_headers', 'pwa-192x192.pn
   if (!existsSync(join('dist', file))) fail(`Falta dist/${file}; la PWA quedaría rota. No se despliega.`);
 }
 
-run('npx', ['wrangler', 'pages', 'deploy', 'dist', '--project-name', PROJECT, '--branch', 'main', '--commit-dirty=true'], env);
-console.log('\n[deploy] Listo: https://app.puriqay.org');
+run('npx', ['wrangler', 'pages', 'deploy', 'dist', '--project-name', PROJECT, '--branch', branch, '--commit-dirty=true'], env);
+console.log(previewArg
+  ? `\n[deploy] Vista previa publicada en la rama "${branch}"; su URL está en la salida de wrangler de arriba.`
+  : '\n[deploy] Listo: https://app.puriqay.org');
