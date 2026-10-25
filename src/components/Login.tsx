@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -13,6 +13,13 @@ export default function Login() {
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [resending, setResending] = useState(false);
   const navigate = useNavigate();
+
+  // Con la sesión ya abierta, el login no tiene nada que hacer: directo al panel.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate('/dashboard', { replace: true });
+    });
+  }, [navigate]);
 
   // Si la cuenta existe pero el correo no está confirmado, se puede pedir otro enlace.
   const handleResend = async () => {
@@ -38,7 +45,8 @@ export default function Login() {
       setErrorMsg(traducirErrorAuth(error));
       setNeedsConfirmation(error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message));
     } else {
-      navigate('/dashboard');
+      // replace: el login sale del historial y "Atrás" desde el panel no vuelve aquí.
+      navigate('/dashboard', { replace: true });
     }
     
     setLoading(false);

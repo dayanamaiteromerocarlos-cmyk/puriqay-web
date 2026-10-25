@@ -53,7 +53,9 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
           
             {/* Ruta Interna */}
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* Cada pestaña tiene su dirección (/dashboard/jornadas, ...) para que "Atrás"
+                las recorra; Dashboard lee el resto de la ruta. */}
+            <Route path="/dashboard/*" element={<Dashboard />} />
           
             {/* Redirección por defecto */}
             <Route path="*" element={<Navigate to="/" replace />} />

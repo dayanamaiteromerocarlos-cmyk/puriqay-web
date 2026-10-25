@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import QRCode from 'react-qr-code';
@@ -36,8 +36,36 @@ const ADVANCED_PROFILE_FIELDS = [
 const nombreCorto = (first: string | null, last: string | null) =>
   [first, last].map(s => s?.trim().split(/\s+/)[0] ?? '').filter(Boolean).join(' ');
 
+// La pestaña abierta vive en la URL para que "Atrás" recorra las secciones visitadas
+// y recargar no devuelva a Inicio. Los ids internos no cambian; esta tabla les da
+// su dirección en español: /dashboard/<dirección>, y el detalle de una jornada
+// cuelga de la pestaña desde donde se abrió: /dashboard/<dirección>/jornada/<id>.
+const DIRECCIONES: Record<string, string> = {
+  inicio: 'inicio',
+  locations: 'lugares',
+  jornadas: 'jornadas',
+  volunteers: 'voluntarios',
+  marketing: 'marketing',
+  available_jornadas: 'proximas-jornadas',
+  mis_asistencias: 'mis-asistencias',
+  scanner: 'control-asistencia',
+  qr: 'mi-qr',
+  perfil: 'perfil',
+};
+const TAB_POR_DIRECCION = Object.fromEntries(Object.entries(DIRECCIONES).map(([tab, dir]) => [dir, tab]));
+const rutaDe = (tab: string, jornadaId?: string) =>
+  `/dashboard/${DIRECCIONES[tab]}${jornadaId ? `/jornada/${jornadaId}` : ''}`;
+
+// Pestañas que no son de todos, con el permiso que piden (las mismas condiciones
+// que muestran su botón en el menú). Abrir una por dirección sin permiso lleva a Inicio.
+const PERMISO_TAB: Record<string, 'gestionaJornadas' | 'veVoluntarios' | 'veMarketing' | 'esInterno'> = {
+  locations: 'gestionaJornadas', jornadas: 'gestionaJornadas', volunteers: 'veVoluntarios',
+  marketing: 'veMarketing', scanner: 'esInterno',
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [area, setArea] = useState<string | null>(null);
@@ -49,17 +77,30 @@ export default function Dashboard() {
   const [profileError, setProfileError] = useState<string | null>(null);
 
   // En escritorio el menú se puede contraer a solo iconos; en celular es un panel
-  // que se abre desde la derecha con el botón ☰.
+  // que se abre desde la derecha con el botón ☰. Abrirlo agrega una entrada al
+  // historial (marcada en su `state`), así "Atrás" lo cierra como en una app de celular.
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [menuMovil, setMenuMovil] = useState(false);
-  const [activeTab, setActiveTab] = useState('');
-  // Jornada abierta en "Detalle de Jornada" (se abre desde Inicio, Próximas Jornadas
-  // o Jornadas; "Volver" regresa a la pestaña de donde vino).
-  const [detalle, setDetalle] = useState<string | null>(null);
+  const menuMovil = (location.state as { menu?: boolean } | null)?.menu === true;
+
+  // Pestaña y jornada abierta en "Detalle de Jornada" (se abre desde Inicio,
+  // Próximas Jornadas o Jornadas), leídas de la URL.
+  const [direccion, subruta, jornadaId] = (useParams()['*'] ?? '').split('/');
+  const activeTab = TAB_POR_DIRECCION[direccion] ?? '';
+  const detalle = subruta === 'jornada' && jornadaId ? jornadaId : null;
 
   useEffect(() => {
     checkUserRole();
   }, []);
+
+  // Dirección vacía, desconocida o de una pestaña que el rol no ve: a Inicio, sin
+  // dejar la dirección mala en el historial.
+  useEffect(() => {
+    if (loading || profileError) return;
+    const permiso = PERMISO_TAB[activeTab];
+    if (!activeTab || (permiso && !permisos({ role, area, is_active: isActive })[permiso])) {
+      navigate(rutaDe('inicio'), { replace: true });
+    }
+  }, [loading, profileError, activeTab, role, area, isActive, navigate]);
 
   // Si la sesión se cierra por fuera de "Cerrar Sesión" (token vencido o revocado,
   // contraseña cambiada en otro dispositivo), las consultas empezarían a fallar o a
@@ -82,7 +123,7 @@ export default function Dashboard() {
     const user = session?.user;
 
     if (!user) {
-      navigate('/');
+      navigate('/', { replace: true });
       return;
     }
     setUserId(user.id);
@@ -109,7 +150,6 @@ export default function Dashboard() {
       setIsActive(data.is_active);
       setNombre(nombreCorto(data.first_name, data.last_name));
       setQrToken(data.qr_token);
-      setActiveTab('inicio');
 
       // Solo el equipo interno (COORDINADOR/ADMIN) completa los datos avanzados, y
       // se le piden únicamente los campos que tenga vacíos. Un voluntario externo se
@@ -126,16 +166,35 @@ export default function Dashboard() {
   const handleLogout = async () => {
     loggingOut.current = true;
     await supabase.auth.signOut();
-    navigate('/');
+    // Reemplaza la entrada del panel: tras salir, "Atrás" no debe intentar volver a él.
+    navigate('/', { replace: true });
   };
+
+  // Retrocede una entrada si la anterior es de esta app; si esta es la primera (se
+  // abrió un enlace directo), "Atrás" saldría de Puriqay, así que va a `ruta`.
+  const retroceder = (ruta: string) => {
+    if (location.key === 'default') navigate(ruta, { replace: true });
+    else navigate(-1);
+  };
+
+  const abrirMenu = () => navigate(location.pathname, { state: { menu: true } });
+  const cerrarMenu = () => retroceder(location.pathname);
 
   const irA = (tab: string) => {
-    setActiveTab(tab);
-    setDetalle(null);
-    setMenuMovil(false);
+    const ruta = rutaDe(tab);
+    // window.location y no `location`: mientras se descarga una pestaña perezosa,
+    // React sigue mostrando la pantalla anterior (con su `location` viejo) aunque la
+    // URL ya cambió, y un segundo clic agregaría la misma dirección dos veces.
+    if (window.location.pathname === ruta) {
+      if (menuMovil) cerrarMenu();
+      return;
+    }
+    // Desde el menú del celular se reemplaza la entrada del menú abierto: así
+    // "Atrás" vuelve a la pestaña anterior y no a reabrir el menú.
+    navigate(ruta, { replace: menuMovil });
   };
 
-  const verDetalle = (jornadaId: string) => setDetalle(jornadaId);
+  const verDetalle = (id: string) => navigate(rutaDe(activeTab, id));
 
   // `compacto`: menú de escritorio contraído (solo iconos).
   const SidebarItem = ({ id, label, icon: Icon, compacto }: any) => {
@@ -285,11 +344,11 @@ export default function Dashboard() {
       {/* MENÚ DE CELULAR: panel desde la derecha */}
       {menuMovil && (
         <div className="md:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-pq-ink/45" onClick={() => setMenuMovil(false)} aria-hidden="true" />
+          <div className="absolute inset-0 bg-pq-ink/45" onClick={cerrarMenu} aria-hidden="true" />
           <aside role="dialog" aria-modal="true" aria-label="Menú" className="absolute top-0 right-0 bottom-0 w-[300px] max-w-[85vw] bg-white flex flex-col shadow-[-8px_0_24px_rgba(31,43,42,0.16)]">
             <div className="h-[72px] flex items-center justify-between pl-5 pr-4 border-b border-pq-cream-dark shrink-0">
               <img src="/img/puriqay-plus-wordmark.png" alt="Puriqay +" className="h-10 w-auto" />
-              <button onClick={() => setMenuMovil(false)} aria-label="Cerrar menú" className="w-11 h-11 rounded-xl bg-pq-cream text-pq-teal-deep flex items-center justify-center">
+              <button onClick={cerrarMenu} aria-label="Cerrar menú" className="w-11 h-11 rounded-xl bg-pq-cream text-pq-teal-deep flex items-center justify-center">
                 <X size={24} />
               </button>
             </div>
@@ -305,7 +364,7 @@ export default function Dashboard() {
         <header className="md:hidden h-[72px] flex items-center justify-between bg-white px-4 border-b border-pq-cream-dark shrink-0 shadow-sm z-10">
           <img src="/img/puriqay-plus-wordmark.png" alt="Puriqay +" className="h-10 w-auto" />
           <button
-            onClick={() => setMenuMovil(true)}
+            onClick={abrirMenu}
             aria-label="Abrir menú"
             className="w-11 h-11 rounded-xl bg-pq-cream text-pq-teal-deep flex items-center justify-center hover:bg-pq-cream-dark transition-colors"
           >
@@ -323,7 +382,7 @@ export default function Dashboard() {
                 jornadaId={detalle}
                 esInterno={p.esInterno}
                 volverA={NOMBRES_TAB[activeTab] ?? 'Próximas Jornadas'}
-                onVolver={() => setDetalle(null)}
+                onVolver={() => retroceder(rutaDe(activeTab))}
               />
             </div>
           )}

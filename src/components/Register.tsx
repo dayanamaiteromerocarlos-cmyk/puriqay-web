@@ -66,7 +66,7 @@ export default function Register() {
       setEmailSent(true);
     } else if (authData.session) {
       toast.success('¡Registro exitoso! Bienvenido a Puriqay.');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
 
     setLoading(false);
