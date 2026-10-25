@@ -8,7 +8,6 @@ import Inicio from './Inicio';
 import MisAsistencias from './MisAsistencias';
 import JornadaDetalle from './JornadaDetalle';
 import { permisos } from '../lib/permisos';
-import { olvidarBienvenida } from '../lib/bienvenida';
 
 // Las pestañas que no son de todos se descargan solo al abrirlas, para que el
 // voluntario no cargue el escáner, el tablero de marketing, etc.
@@ -76,9 +75,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [missingProfileFields, setMissingProfileFields] = useState<string[]>([]);
   const [profileError, setProfileError] = useState<string | null>(null);
-  // Identifica este inicio de sesión (usuario + hora del login) para que el dragón
-  // de Inicio se anime una sola vez por sesión; no guarda tokens.
-  const [marcaSesion, setMarcaSesion] = useState('');
 
   // En escritorio el menú se puede contraer a solo iconos; en celular es un panel
   // que se abre desde la derecha con el botón ☰. Abrirlo agrega una entrada al
@@ -113,7 +109,6 @@ export default function Dashboard() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
-        olvidarBienvenida();
         if (!loggingOut.current) toast.error('Tu sesión terminó. Inicia sesión de nuevo.');
         navigate('/', { replace: true });
       }
@@ -155,7 +150,6 @@ export default function Dashboard() {
       setIsActive(data.is_active);
       setNombre(nombreCorto(data.first_name, data.last_name));
       setQrToken(data.qr_token);
-      setMarcaSesion(`${user.id}:${user.last_sign_in_at ?? ''}`);
 
       // Solo el equipo interno (COORDINADOR/ADMIN) completa los datos avanzados, y
       // se le piden únicamente los campos que tenga vacíos. Un voluntario externo se
@@ -171,7 +165,6 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     loggingOut.current = true;
-    olvidarBienvenida();
     await supabase.auth.signOut();
     // Reemplaza la entrada del panel: tras salir, "Atrás" no debe intentar volver a él.
     navigate('/', { replace: true });
@@ -396,7 +389,7 @@ export default function Dashboard() {
 
           {!detalle && activeTab === 'inicio' && userId && (
             <div className="max-w-[1000px] mx-auto">
-              <Inicio userId={userId} nombre={nombre} marcaSesion={marcaSesion} onVerDetalle={verDetalle} onVerTodas={() => irA('available_jornadas')} />
+              <Inicio userId={userId} nombre={nombre} onVerDetalle={verDetalle} onVerTodas={() => irA('available_jornadas')} />
             </div>
           )}
 
