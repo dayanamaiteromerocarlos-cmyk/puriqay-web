@@ -22,8 +22,6 @@ const usaWebP = () => {
   return ios || safari;
 };
 
-const movimientoReducido = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 // Ahorro de datos activado o red 2G/3G. Solo Chrome/Edge (y Android) lo informan;
 // en Safari y Firefox lo cubre ESPERA_AUTOMATICA_MS.
 const conexionLenta = () => {
@@ -155,10 +153,11 @@ function BotonVerAnimacion({ cargando, onClick }: { cargando: boolean; onClick: 
 type Estado = 'quieto' | 'cargando' | 'en_curso';
 
 export default function DragonPeek({ userId }: { userId: string }) {
-  // Sola, solo si esta versión es nueva para la persona, no pidió menos movimiento y
-  // su conexión no es lenta. Con el botón se reproduce siempre: es una acción suya.
+  // Sola, solo si esta versión es nueva para la persona y su conexión no es lenta.
+  // También con "reducir movimiento": es una sola vez, breve y en una esquina.
+  // Con el botón se reproduce siempre: es una acción suya.
   const [automatica, setAutomatica] = useState(
-    () => !animacionVista(userId) && !movimientoReducido() && !conexionLenta());
+    () => !animacionVista(userId) && !conexionLenta());
   const [ronda, setRonda] = useState(automatica ? 1 : 0);
   const [estado, setEstado] = useState<Estado>(automatica ? 'cargando' : 'quieto');
 

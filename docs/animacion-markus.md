@@ -22,16 +22,17 @@ Una única vez por cada versión de la animación: la primera vez que la persona
 No aparece sola si:
 
 1. Ya la vio en esa versión, en ese navegador.
-2. Tiene activado **reducir movimiento** (`prefers-reduced-motion`). En Windows ocurre con los "Efectos de animación" desactivados.
-3. Tiene **ahorro de datos** activado o una red **2G/3G** (Network Information API; solo la informan Chrome, Edge y Android).
-4. No logra empezar en **4 segundos** por conexión lenta. Esto también cubre Safari y Firefox.
+2. Tiene **ahorro de datos** activado o una red **2G/3G** (Network Information API; solo la informan Chrome, Edge y Android).
+3. No logra empezar en **4 segundos** por conexión lenta. Esto también cubre Safari y Firefox.
 
-En los casos 3 y 4 no se marca como vista: en la siguiente visita lo vuelve a intentar sola. El video arranca en `canplaythrough`, es decir, cuando el navegador estima que puede reproducirlo completo sin trabarse.
+Con **reducir movimiento** (`prefers-reduced-motion`) activado sí aparece sola, a propósito: es una sola vez, dura 5,6 s y ocupa solo una esquina.
+
+En los casos 2 y 3 no se marca como vista: en la siguiente visita lo vuelve a intentar sola. El video arranca en `canplaythrough`, es decir, cuando el navegador estima que puede reproducirlo completo sin trabarse.
 
 ## El botón del ojo
 
 - Círculo `pq-brand` con un ojo blanco, dibujado en SVG, abajo a la derecha y solo en Inicio.
-- Al pulsarlo reproduce la animación completa, siempre, aunque ya la haya visto o tenga "reducir movimiento", porque es una acción de la persona.
+- Al pulsarlo reproduce la animación completa, siempre, aunque ya la haya visto, porque es una acción de la persona.
 - Mientras la animación se ve, el botón se oculta y reaparece al terminar.
 - Con internet lento, el botón late mientras la animación se descarga y no acepta otro clic.
 - Se puede usar con teclado; los lectores de pantalla lo anuncian como "Ver la animación de Markus".
