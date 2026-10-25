@@ -5,6 +5,7 @@ import { fetchHistorial, haceDias, horario, horasDe, formatoHoras, type EntradaH
 import { ChipLinea, BotonSecundario } from './JornadaUI';
 import { EstadoChip } from './MisAsistencias';
 import LoadError from './LoadError';
+import DragonPeek from './DragonPeek';
 import { Clock, MapPin, History, ArrowRight, Star, Heart } from 'lucide-react';
 
 const PROXIMAS_EN_INICIO = 3;
@@ -61,6 +62,7 @@ export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Pro
 
   return (
     <div className="flex flex-col gap-6 md:gap-8">
+      <DragonPeek userId={userId} />
       <div>
         <h1 className="text-[26px] md:text-[32px] font-extrabold text-pq-teal-deep leading-tight">¡Hola{nombre ? `, ${nombre.split(' ')[0]}` : ''}!</h1>
         <p className="mt-2 text-pq-ink-muted">Qué bueno tenerte aquí de vuelta.</p>
@@ -120,6 +122,17 @@ export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Pro
         </div>
 
         <div className="flex-[1_1_280px] min-w-0 flex flex-col gap-6">
+          <section className="relative px-6 py-8 rounded-[20px] bg-pq-teal-50 flex justify-center">
+            <Star size={28} className="absolute left-4 top-4 text-pq-marku" aria-hidden="true" />
+            <figure className="w-full max-w-[260px] p-3 pb-5 border-[1.5px] border-pq-brand rounded-xl bg-white -rotate-2 shadow-pq-card">
+              <div className="aspect-square rounded-lg bg-pq-cream flex items-center justify-center overflow-hidden">
+                <img src="/img/markus-saludo.png" alt="Markus saludando" className="w-4/5 h-4/5 object-contain" />
+              </div>
+              <figcaption className="mt-4 text-center font-display font-bold text-pq-teal-deep">Próximamente</figcaption>
+            </figure>
+            <Heart size={28} className="absolute right-4 bottom-4 text-pq-brand" aria-hidden="true" />
+          </section>
+
           <section className="p-6 rounded-[20px] bg-white shadow-pq-card flex flex-col gap-4">
             <h2 className="flex items-center gap-3 text-lg font-bold text-pq-teal-deep">
               <span className="w-10 h-10 rounded-full bg-pq-teal-50 text-pq-teal flex items-center justify-center"><History size={20} aria-hidden="true" /></span>
@@ -137,17 +150,6 @@ export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Pro
             ) : (
               <p className="text-sm text-pq-ink-muted">Aún no tienes actividades registradas. ¡Inscríbete a tu primera jornada!</p>
             )}
-          </section>
-
-          <section className="relative px-6 py-8 rounded-[20px] bg-pq-teal-50 flex justify-center">
-            <Star size={28} className="absolute left-4 top-4 text-pq-marku" aria-hidden="true" />
-            <figure className="w-full max-w-[260px] p-3 pb-5 border-[1.5px] border-pq-brand rounded-xl bg-white -rotate-2 shadow-pq-card">
-              <div className="aspect-square rounded-lg bg-pq-cream flex items-center justify-center overflow-hidden">
-                <img src="/img/markus-saludo.png" alt="Markus saludando" className="w-4/5 h-4/5 object-contain" />
-              </div>
-              <figcaption className="mt-4 text-center font-display font-bold text-pq-teal-deep">Próximamente</figcaption>
-            </figure>
-            <Heart size={28} className="absolute right-4 bottom-4 text-pq-brand" aria-hidden="true" />
           </section>
         </div>
       </div>
