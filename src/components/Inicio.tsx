@@ -5,6 +5,7 @@ import { fetchHistorial, haceDias, horario, horasDe, formatoHoras, type EntradaH
 import { ChipLinea, BotonSecundario } from './JornadaUI';
 import { EstadoChip } from './MisAsistencias';
 import LoadError from './LoadError';
+import DragonPeek from './DragonPeek';
 import { Clock, MapPin, History, ArrowRight, Star, Heart } from 'lucide-react';
 
 const PROXIMAS_EN_INICIO = 3;
@@ -12,11 +13,12 @@ const PROXIMAS_EN_INICIO = 3;
 type Props = {
   userId: string;
   nombre: string;
+  marcaSesion: string;
   onVerDetalle: (jornadaId: string) => void;
   onVerTodas: () => void;
 };
 
-export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Props) {
+export default function Inicio({ userId, nombre, marcaSesion, onVerDetalle, onVerTodas }: Props) {
   const [historial, setHistorial] = useState<EntradaHistorial[]>([]);
   const [proximas, setProximas] = useState<any[]>([]);
   const [lugares, setLugares] = useState<Record<string, LugarPublico>>({});
@@ -61,6 +63,7 @@ export default function Inicio({ userId, nombre, onVerDetalle, onVerTodas }: Pro
 
   return (
     <div className="flex flex-col gap-6 md:gap-8">
+      <DragonPeek marcaSesion={marcaSesion} />
       <div>
         <h1 className="text-[26px] md:text-[32px] font-extrabold text-pq-teal-deep leading-tight">¡Hola{nombre ? `, ${nombre.split(' ')[0]}` : ''}!</h1>
         <p className="mt-2 text-pq-ink-muted">Qué bueno tenerte aquí de vuelta.</p>
